@@ -309,6 +309,249 @@
   gap: 16px;
 }
 
+.sidebar-meter {
+  display: block;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255,255,255,.08);
+  color: #989aa5;
+  font: 8px/1.5 "DM Mono", monospace;
+}
+
+.sidebar-meter b { color: #f0c66e; font-weight: 500; }
+
+.production-launchpad {
+  display: grid !important;
+  grid-template-columns: minmax(220px, 1.1fr) minmax(330px, 1.25fr) auto;
+  align-items: center;
+  gap: 24px;
+  margin: 0 47px 38px !important;
+  padding: 18px 20px !important;
+  overflow: hidden;
+  border-color: #d6c8e9 !important;
+  background:
+    radial-gradient(circle at 84% -55%, rgba(181,147,230,.23), transparent 42%),
+    linear-gradient(105deg, #fffcf8, #faf7ff) !important;
+}
+
+.launchpad-copy h2 {
+  margin: 5px 0 5px;
+  color: #242230;
+  font: 700 18px "Noto Serif SC", Georgia, serif;
+  letter-spacing: -.04em;
+}
+
+.launchpad-copy p {
+  max-width: 310px;
+  margin: 0;
+  color: #7d7880;
+  font: 9px/1.65 "Noto Serif SC", Georgia, serif;
+}
+
+.workflow-steps {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(38px, 1fr));
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.workflow-steps li { position: relative; min-width: 0; padding-top: 2px; color: #aaa4ad; text-align: center; }
+.workflow-steps li::before { position: absolute; z-index: 0; top: 13px; left: -50%; width: 100%; height: 1px; content: ""; background: #ded7e5; }
+.workflow-steps li:first-child::before { display: none; }
+.workflow-steps b { position: relative; z-index: 1; display: grid; width: 24px; height: 24px; margin: 0 auto 5px; place-items: center; border: 1px solid #d9d2df; border-radius: 50%; color: #928d96; background: #fffdf9; font: 500 8px "DM Mono", monospace; }
+.workflow-steps span { display: block; overflow: hidden; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.workflow-steps li.done { color: #71618f; }
+.workflow-steps li.done b { border-color: #aa95dc; color: #fff; background: #826cb6; }
+.workflow-steps li.active { color: #625077; }
+.workflow-steps li.active b { border-color: #e0ad5e; color: #785728; background: #ffedc9; box-shadow: 0 0 0 4px rgba(232,190,117,.16); }
+
+.launchpad-action { display: flex; align-items: center; gap: 12px; min-width: 181px; }
+.launchpad-action > span { min-width: 42px; text-align: right; }
+.launchpad-action b, .launchpad-action small { display: block; }
+.launchpad-action b { color: #3a3641; font: 500 11px "DM Mono", monospace; }
+.launchpad-action small { margin-top: 3px; color: #98919b; font-size: 8px; white-space: nowrap; }
+
+.automation-section { background: #fbf9f3; }
+.automation-layout { display: grid; grid-template-columns: minmax(450px, 1.22fr) minmax(310px, .78fr); gap: 14px; }
+.production-console, .quality-gate { min-width: 0; padding: 18px !important; }
+.plan-state { padding: 5px 7px; border: 1px solid #d7d0c8; border-radius: 3px; color: #77716a; background: #f7f4ee; font: 8px "DM Mono", monospace; }
+.plan-state.ready { border-color: #bad8c1; color: #4d865d; background: #f0f8ee; }
+.plan-state.running { border-color: #dfbd7c; color: #89662e; background: #fff8e8; }
+.console-intro { max-width: 630px; margin: 10px 0 15px; color: #77716c; font: 10px/1.7 "Noto Serif SC", Georgia, serif; }
+.production-route { border-top: 1px solid #e7e1d7; }
+.route-step { display: grid; grid-template-columns: 25px 1fr auto; align-items: center; gap: 9px; min-height: 45px; border-bottom: 1px solid #e7e1d7; color: #8e8981; }
+.route-step i { display: grid; width: 22px; height: 22px; place-items: center; border-radius: 50%; color: #78689d; background: #efeafb; font: 700 9px "Noto Serif SC", Georgia, serif; font-style: normal; }
+.route-step span { min-width: 0; }
+.route-step b, .route-step small { display: block; }
+.route-step b { color: #504c49; font: 700 10px "Noto Serif SC", Georgia, serif; }
+.route-step small { overflow: hidden; margin-top: 2px; color: #99928a; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.route-step em { padding: 3px 5px; border-radius: 3px; color: #9c968e; background: #f3f0e9; font: 8px "DM Mono", monospace; font-style: normal; }
+.route-step.done i { color: #fff; background: #6d9e78; }
+.route-step.done em { color: #518461; background: #eff8ee; }
+.route-step.active i { color: #795422; background: #fde7bd; }
+.route-step.active em { color: #89652a; background: #fff6df; }
+.route-step.running { background: linear-gradient(90deg, rgba(247,237,213,.7), transparent); }
+.route-step.running i { color: #694f87; background: #dcc8f6; box-shadow: 0 0 0 4px rgba(192,160,232,.16); }
+.route-step.running em { color: #70548d; background: #f4edff; }
+.plan-controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-top: 14px; }
+.plan-controls > div { padding: 9px; border: 1px solid #e8e1d6; border-radius: 4px; background: #fffdfa; }
+.plan-controls span, .plan-controls b { display: block; }
+.plan-controls span { color: #9a948d; font-size: 8px; }
+.plan-controls b { margin-top: 3px; color: #4e4945; font: 500 9px/1.4 "DM Mono", monospace; }
+.plan-controls strong { color: #735d9e; font-weight: 500; }
+.console-actions { display: flex; justify-content: flex-end; gap: 7px; margin-top: 14px; }
+.console-actions .outline-button.is-approved { border-color: #bbd7c0 !important; color: #4e8760 !important; background: #f0f8ee !important; }
+.automation-note { margin: 10px 0 0; color: #99918a; font-size: 8px; line-height: 1.55; }
+.quality-gate .score-ring { width: 43px; height: 43px; }
+.gate-list { margin: 16px 0 0; padding: 0; border-top: 1px solid #e6dfd5; list-style: none; }
+.gate-list li { display: grid; grid-template-columns: 18px 1fr auto; align-items: center; gap: 7px; min-height: 38px; border-bottom: 1px solid #e6dfd5; }
+.gate-list span { display: grid; width: 17px; height: 17px; place-items: center; border-radius: 50%; font-size: 8px; }
+.gate-list b { color: #534e49; font: 700 9px "Noto Serif SC", Georgia, serif; }
+.gate-list em { color: #7e9d88; font-size: 8px; font-style: normal; }
+.gate-list .passed span { color: #528c63; background: #e9f5e9; }
+.gate-list .pending span { color: #a56c52; background: #fceddf; }
+.gate-list .pending em { color: #b07a5d; }
+
+.season-planner {
+  margin: 0 47px 38px !important;
+  padding: 24px !important;
+  overflow: hidden;
+  border-color: #d8cbe9 !important;
+  background:
+    radial-gradient(circle at 94% 0, rgba(196, 168, 243, .27), transparent 23%),
+    radial-gradient(circle at 3% 100%, rgba(245, 200, 113, .15), transparent 31%),
+    #fffcf8 !important;
+}
+
+.season-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.season-header > div:first-child { min-width: 0; }
+.season-header h2 { margin: 5px 0 6px; color: #242230; font: 700 24px/1.35 "Noto Serif SC", Georgia, serif; letter-spacing: -.055em; }
+.season-header p { max-width: 680px; margin: 0; color: #706b65; font: 11px/1.7 "Noto Serif SC", Georgia, serif; }
+.season-actions { display: flex; flex: 0 0 auto; align-items: center; gap: 7px; padding-top: 4px; }
+
+.season-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 20px 0 14px;
+}
+
+.season-metrics > div {
+  position: relative;
+  min-height: 64px;
+  padding: 11px 12px;
+  border: 1px solid #e6ded4;
+  border-radius: 6px;
+  background: rgba(255, 253, 248, .88);
+}
+
+.season-metrics > div:first-child { border-color: #d6c2ef; background: #fbf8ff; }
+.season-metrics > div:last-child { border-color: #ead8af; background: #fffaf0; }
+.season-metrics b,
+.season-metrics span { display: block; }
+.season-metrics b { color: #34303a; font: 700 22px/1 "DM Mono", monospace; letter-spacing: -.09em; }
+.season-metrics b span { display: inline; margin-left: 2px; color: #9a773e; font-size: 10px; letter-spacing: 0; }
+.season-metrics span { margin-top: 6px; color: #908981; font-size: 8px; }
+
+.season-arcs {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+  margin-bottom: 15px;
+}
+
+.season-arc {
+  position: relative;
+  min-height: 62px;
+  padding: 9px 10px;
+  overflow: hidden;
+  border-radius: 5px;
+  color: #3f3b46;
+  background: #f2edf8;
+}
+
+.season-arc::after { position: absolute; right: -15px; bottom: -20px; width: 70px; height: 70px; border-radius: 50%; content: ""; background: rgba(255,255,255,.46); }
+.season-arc:nth-child(2) { background: #edf3fb; }.season-arc:nth-child(3) { background: #f7eef5; }.season-arc:nth-child(4) { background: #fff3df; }.season-arc:nth-child(5) { background: #eaf4ed; }
+.season-arc span,
+.season-arc b,
+.season-arc small { position: relative; z-index: 1; display: block; }
+.season-arc span { color: #8d8597; font: 8px "DM Mono", monospace; }.season-arc b { margin-top: 3px; font: 700 11px "Noto Serif SC", Georgia, serif; }.season-arc small { margin-top: 4px; color: #79727d; font-size: 8px; }
+
+.season-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(300px, .65fr);
+  gap: 12px;
+}
+
+.episode-board {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid #e3ddd4;
+  border-radius: 7px;
+  background: #fffdf9;
+}
+
+.episode-board-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.episode-board-head > div:first-child { display: grid; gap: 4px; }.episode-board-head b { color: #4e4843; font: 700 10px "Noto Serif SC", Georgia, serif; }
+.episode-filters { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; }
+.episode-filters button { padding: 4px 6px; border: 1px solid #e1dad0; border-radius: 3px; color: #8e8881; background: #fff; font-size: 8px; }.episode-filters button.active { border-color: #b59be1; color: #735d9f; background: #f7f3ff; }
+
+.episode-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 6px;
+  max-height: 326px;
+  padding-right: 4px;
+  overflow-y: auto;
+  scrollbar-color: #cfc5dc transparent;
+  scrollbar-width: thin;
+}
+
+.episode-cell {
+  position: relative;
+  min-height: 62px;
+  padding: 7px 6px;
+  overflow: hidden;
+  border: 1px solid #e5ded5;
+  border-radius: 5px;
+  color: #4d4945;
+  background: #fff;
+  text-align: left;
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+
+.episode-cell:hover { z-index: 1; border-color: #b49bdf; transform: translateY(-2px); box-shadow: 0 6px 13px rgba(76, 57, 129, .1); }
+.episode-cell.active { border-color: #896cc4; background: #faf7ff; box-shadow: 0 0 0 2px rgba(153, 122, 210, .14); }
+.episode-cell::after { position: absolute; right: 0; bottom: 0; left: 0; height: 3px; content: ""; background: #b49be0; }.episode-cell[data-act="2"]::after { background: #8fb3dd; }.episode-cell[data-act="3"]::after { background: #d49abf; }.episode-cell[data-act="4"]::after { background: #e6b260; }.episode-cell[data-act="5"]::after { background: #7cbd99; }
+.episode-cell span,
+.episode-cell b,
+.episode-cell small { display: block; }.episode-cell span { color: #a49e96; font: 8px "DM Mono", monospace; }.episode-cell b { overflow: hidden; margin-top: 4px; color: #48433f; font: 700 9px "Noto Serif SC", Georgia, serif; text-overflow: ellipsis; white-space: nowrap; }.episode-cell small { overflow: hidden; margin-top: 3px; color: #8c857e; font-size: 7px; text-overflow: ellipsis; white-space: nowrap; }
+
+.episode-inspector {
+  min-width: 0;
+  padding: 16px;
+  border-radius: 7px;
+  color: #ece9f0;
+  background: linear-gradient(145deg, #2a2937, #1d1e28);
+  box-shadow: inset 0 1px rgba(255,255,255,.08);
+}
+
+.inspector-top { display: flex; justify-content: space-between; gap: 10px; color: #bcb6ca; font: 8px "DM Mono", monospace; letter-spacing: .08em; }
+.episode-status { padding: 3px 5px; border-radius: 3px; color: #9fe0b2; background: rgba(110, 184, 131, .16); letter-spacing: 0; }
+.episode-inspector h3 { margin: 12px 0 7px; color: #fffaf3; font: 700 21px "Noto Serif SC", Georgia, serif; letter-spacing: -.04em; }.episode-logline { min-height: 54px; margin: 0; color: #cbc7d0; font: 10px/1.65 "Noto Serif SC", Georgia, serif; }
+.episode-detail-list { margin: 15px 0 13px; border-top: 1px solid rgba(255,255,255,.11); }.episode-detail-list > div { padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,.11); }.episode-detail-list span, .episode-detail-list b { display: block; }.episode-detail-list span { color: #aaa5b2; font-size: 8px; }.episode-detail-list b { margin-top: 3px; color: #f3eff1; font: 500 9px/1.55 "Noto Serif SC", Georgia, serif; }.episode-inspector .text-button { color: #f1c56c !important; }
+.season-note { margin: 12px 2px 0; color: #918a82; font-size: 8px; line-height: 1.6; }
+
+.dailies-section .section-number::after { content: ""; }
+
 .overview-grid {
   display: grid !important;
   grid-template-columns: minmax(0, 1.1fr) minmax(270px, .8fr) minmax(270px, .8fr) !important;
@@ -497,6 +740,11 @@ footer {
 }
 
 @media (max-width: 1240px) {
+  .production-launchpad { grid-template-columns: 1fr 1.25fr; }
+  .launchpad-action { grid-column: 1 / -1; justify-content: flex-end; }
+  .season-workspace { grid-template-columns: minmax(0, 1fr) 290px; }
+  .episode-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+
   .overview-grid {
     grid-template-columns: minmax(0, 1.1fr) minmax(260px, .9fr) !important;
   }
@@ -519,6 +767,8 @@ footer {
   .dailies-layout {
     grid-template-columns: minmax(330px, 1fr) minmax(360px, 1fr) !important;
   }
+
+  .automation-layout { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 980px) {
@@ -529,11 +779,14 @@ footer {
   .episode-card { display: none !important; }
   .cast-layout,
   .shot-board,
-  .dailies-layout { grid-template-columns: 1fr !important; }
+  .dailies-layout,
+  .automation-layout { grid-template-columns: 1fr !important; }
   .cast-rail { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .asset-counter { display: none; }
   .world-card .world-scene { float: none; width: auto; margin: 15px 0; }
   .overview-grid { grid-template-columns: 1fr 1fr !important; }
+  .season-workspace { grid-template-columns: 1fr; }
+  .episode-inspector { min-height: 0; }
 }
 
 @media (max-width: 680px) {
@@ -550,6 +803,20 @@ footer {
   .hero-section { min-height: auto; padding-top: 40px !important; }
   .hero-section h1 { font-size: 30px !important; }
   .creative-brief { margin: 0 18px 28px !important; }
+  .production-launchpad { grid-template-columns: 1fr !important; margin: 0 18px 28px !important; gap: 16px; }
+  .season-planner { margin: 0 18px 28px !important; padding: 18px !important; }
+  .season-header { flex-direction: column; gap: 14px; }
+  .season-header h2 { font-size: 21px; }
+  .season-actions { width: 100%; }
+  .season-actions button { flex: 1; }
+  .season-metrics { grid-template-columns: 1fr 1fr; }
+  .season-arcs { grid-template-columns: 1fr; }
+  .season-arc { min-height: 52px; }
+  .episode-board-head { align-items: flex-start; flex-direction: column; }
+  .episode-filters { justify-content: flex-start; }
+  .episode-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); max-height: 360px; }
+  .workflow-steps { max-width: 410px; width: 100%; }
+  .launchpad-action { grid-column: auto; justify-content: space-between; width: 100%; }
   .creative-brief .brief-footer { align-items: flex-end !important; flex-direction: column !important; }
   .overview-grid { grid-template-columns: 1fr !important; padding: 0 18px 30px !important; }
   .section-title { align-items: flex-start !important; }
@@ -561,7 +828,72 @@ footer {
   .storyboard-toolbar { align-items: flex-start !important; }
   .continuity-badge { display: none !important; }
   .player-stage { height: 64vw !important; min-height: 255px; }
+  .plan-controls { grid-template-columns: 1fr 1fr; }
+  .plan-controls > div:last-child { grid-column: 1 / -1; }
+  .console-actions { align-items: stretch; flex-direction: column; }
+  .console-actions button { width: 100%; }
   .delivery-section { padding: 36px 18px !important; }
   .delivery-data { min-width: 0 !important; gap: 10px !important; }
   footer { flex-direction: column; align-items: flex-start; gap: 6px; }
+}
+
+/* Season planning makes the long-form story visible without overwhelming the EP workspace. */
+.season-planner {
+  display: block !important;
+  margin: 0 47px 40px !important;
+  padding: 20px !important;
+  border: 1px solid #ddd5c8 !important;
+  border-radius: 8px !important;
+  background: linear-gradient(140deg, #fffdf8, #faf7ef) !important;
+}
+
+.season-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 22px; }
+.season-header h2 { margin: 5px 0 5px; color: #22212a; font: 700 21px "Noto Serif SC", Georgia, serif; letter-spacing: -.045em; }
+.season-header p { max-width: 600px; margin: 0; color: #77716a; font: 10px/1.7 "Noto Serif SC", Georgia, serif; }
+.season-actions { display: flex; flex: 0 0 auto; gap: 7px; padding-top: 4px; }
+.season-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 18px; }
+.season-metrics > div { min-height: 62px; padding: 10px; border: 1px solid #e7e0d5; border-radius: 4px; background: rgba(255,255,255,.62); }
+.season-metrics b, .season-metrics span { display: block; }
+.season-metrics b { color: #3b3741; font: 600 17px "DM Mono", monospace; letter-spacing: -.06em; }
+.season-metrics b span { display: inline; color: #8a837b; font-size: 9px; letter-spacing: 0; }
+.season-metrics > div > span { margin-top: 5px; color: #918a82; font-size: 8px; }
+.season-arcs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 7px; margin-top: 15px; }
+.arc-card { min-width: 0; min-height: 73px; padding: 10px; border: 1px solid #e3ddd4; border-radius: 5px; color: #5c5650; background: #fffdf9; text-align: left; }
+.arc-card span, .arc-card b, .arc-card small { display: block; }
+.arc-card span { color: #9b9389; font: 8px "DM Mono", monospace; }
+.arc-card b { overflow: hidden; margin-top: 6px; color: #3d3940; font: 700 12px "Noto Serif SC", Georgia, serif; text-overflow: ellipsis; white-space: nowrap; }
+.arc-card small { overflow: hidden; margin-top: 4px; color: #8d867e; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.arc-card.violet { border-top: 3px solid #9f86d3; }.arc-card.blue { border-top: 3px solid #75a6c7; }.arc-card.amber { border-top: 3px solid #d4a256; }.arc-card.rose { border-top: 3px solid #cf7d87; }.arc-card.plum { border-top: 3px solid #806087; }
+.arc-card.selected { border-color: #8e78be; background: #faf7ff; box-shadow: 0 5px 13px rgba(99,72,144,.1); }
+.season-workspace { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(270px, .75fr); align-items: start; gap: 12px; margin-top: 15px; }
+.episode-board { min-width: 0; padding: 13px; border: 1px solid #e6dfd5; border-radius: 6px; background: rgba(255,255,255,.6); }
+.episode-board-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.episode-board-head b { display: block; margin-top: 4px; color: #514d4a; font: 700 10px "Noto Serif SC", Georgia, serif; }
+.episode-filters { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; max-width: 330px; }
+.episode-filters button { padding: 4px 5px; border: 1px solid #e0d9ce; border-radius: 3px; color: #938c83; background: #fffdfa; font-size: 8px; }
+.episode-filters button.active { border-color: #baa5e2; color: #715b9f; background: #f7f3ff; }
+.episode-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; max-height: 365px; margin-top: 12px; padding-right: 4px; overflow: auto; }
+.episode-card-mini { min-width: 0; min-height: 65px; padding: 8px; border: 1px solid #e8e1d8; border-left: 3px solid #b6a0db; border-radius: 4px; color: #514c49; background: #fffdfa; text-align: left; }
+.episode-card-mini span, .episode-card-mini b, .episode-card-mini small { display: block; }
+.episode-card-mini span { color: #968c9f; font: 8px "DM Mono", monospace; }.episode-card-mini b { overflow: hidden; margin-top: 4px; color: #454149; font: 700 9px "Noto Serif SC", Georgia, serif; text-overflow: ellipsis; white-space: nowrap; }.episode-card-mini small { overflow: hidden; margin-top: 3px; color: #9a928a; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.episode-card-mini.blue { border-left-color: #77a7c6; }.episode-card-mini.amber { border-left-color: #d5a65d; }.episode-card-mini.rose { border-left-color: #cf7b86; }.episode-card-mini.plum { border-left-color: #83608b; }
+.episode-card-mini.selected { border-color: #a28ad3; background: #faf7ff; box-shadow: inset 0 0 0 1px #d7c9ef; }
+.episode-inspector { min-height: 354px; padding: 16px; border: 1px solid #ded5ec; border-radius: 6px; background: linear-gradient(155deg, #fbf8ff, #f7f3eb); }
+.inspector-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: #7b688f; font: 8px "DM Mono", monospace; }.episode-status { padding: 3px 5px; border-radius: 3px; color: #568766; background: #eef8ee; font-size: 8px; }
+.episode-inspector h3 { margin: 13px 0 7px; color: #302b38; font: 700 18px "Noto Serif SC", Georgia, serif; letter-spacing: -.04em; }.episode-logline { margin: 0; color: #746e75; font: 10px/1.75 "Noto Serif SC", Georgia, serif; }
+.episode-detail-list { margin-top: 15px; border-top: 1px solid #e4dce8; }.episode-detail-list > div { padding: 9px 0; border-bottom: 1px solid #e4dce8; }.episode-detail-list span, .episode-detail-list b { display: block; }.episode-detail-list span { color: #9b929e; font-size: 8px; }.episode-detail-list b { margin-top: 3px; color: #5a545d; font: 600 9px/1.55 "Noto Serif SC", Georgia, serif; }
+.episode-inspector .text-button { margin-top: 13px !important; }
+.season-note { margin: 12px 0 0; color: #999188; font-size: 8px; line-height: 1.6; }
+
+@media (max-width: 980px) {
+  .season-workspace { grid-template-columns: 1fr; }
+  .episode-inspector { min-height: auto; }
+}
+
+@media (max-width: 680px) {
+  .season-planner { margin: 0 18px 28px !important; padding: 16px !important; }
+  .season-header { display: block; }.season-actions { margin-top: 13px; }.season-actions button { flex: 1; }
+  .season-metrics { grid-template-columns: 1fr 1fr; }.season-arcs { grid-template-columns: 1fr 1fr; }
+  .episode-board-head { display: block; }.episode-filters { justify-content: flex-start; max-width: none; margin-top: 10px; }
+  .episode-grid { grid-template-columns: 1fr 1fr; }
 }

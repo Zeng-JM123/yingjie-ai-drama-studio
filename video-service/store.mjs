@@ -226,7 +226,7 @@ function normalizeStudio(input) {
       tags: arrayOf(project.tags, "project.tags", 24).map(tag => cleanText(tag, "project.tags[]", 80)),
       beats: cleanObject(project.beats, "project.beats", 20_000),
       selectedCharacterId: project.selectedCharacterId ? cleanId(project.selectedCharacterId, "project.selectedCharacterId") : null,
-      metadata: project.metadata === undefined ? {} : cleanObject(project.metadata, "project.metadata", 20_000)
+      metadata: project.metadata === undefined ? {} : cleanObject(project.metadata, "project.metadata", 180_000)
     },
     characters,
     shots,

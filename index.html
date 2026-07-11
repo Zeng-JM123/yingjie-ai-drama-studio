@@ -26,15 +26,18 @@
         <nav class="main-nav" aria-label="创作导航">
           <p>CREATIVE FLOW</p>
           <a class="nav-item active" href="#dashboard" data-target="dashboard"><span>01</span>创作总览</a>
-          <a class="nav-item" href="#cast" data-target="cast"><span>02</span>角色与世界</a>
-          <a class="nav-item" href="#storyboard" data-target="storyboard"><span>03</span>AI 分镜台 <b id="shotNavCount">08</b></a>
-          <a class="nav-item" href="#dailies" data-target="dailies"><span>04</span>样片与审片</a>
-          <a class="nav-item" href="#delivery" data-target="delivery"><span>05</span>交付质检</a>
+          <a class="nav-item" href="#season" data-target="season"><span>02</span>60 集故事总控 <b>60</b></a>
+          <a class="nav-item" href="#cast" data-target="cast"><span>03</span>角色与世界</a>
+          <a class="nav-item" href="#storyboard" data-target="storyboard"><span>04</span>AI 分镜台 <b id="shotNavCount">08</b></a>
+          <a class="nav-item" href="#automation" data-target="automation"><span>05</span>自动制作</a>
+          <a class="nav-item" href="#dailies" data-target="dailies"><span>06</span>样片与审片</a>
+          <a class="nav-item" href="#delivery" data-target="delivery"><span>07</span>交付质检</a>
         </nav>
 
         <div class="sidebar-status">
           <div><span class="live-dot"></span><b>创作 Agent 已就绪</b></div>
           <p>角色、分镜、声音与审片正在使用同一份项目圣经。</p>
+          <small class="sidebar-meter"><b id="sidebarProgress">3 / 6</b> 个制作关卡已通过</small>
           <div class="mini-members"><span>剧</span><span>视</span><span>镜</span><span>声</span><i>+2</i></div>
         </div>
         <div class="sidebar-bottom"><button id="guideBtn">◌ 创作指南</button><span class="user-avatar">C</span></div>
@@ -42,7 +45,7 @@
 
       <main class="content" id="dashboard">
         <header class="topbar">
-          <div class="breadcrumbs"><span>项目空间</span><i>/</i><span>都市悬疑</span><i>/</i><b>第 01 集 · 编辑中</b><span class="save-state" id="saveState">● 已保存</span></div>
+          <div class="breadcrumbs"><span>项目空间</span><i>/</i><span>都市悬疑</span><i>/</i><b>第一季 · 60 集总控</b><span class="save-state" id="saveState">● 已保存</span></div>
           <div class="top-actions"><button class="icon-button" id="commandBtn" aria-label="打开命令面板">⌘ K</button><button class="subtle-button" id="exportBtn">导出项目 ↗</button><button class="preview-button" id="previewBtn"><span>▶</span> 预览样片</button></div>
         </header>
 
@@ -52,13 +55,52 @@
             <h1>从人物，到每一个<br /><em>让人停不下来的镜头。</em></h1>
             <p>把创作意图写进项目圣经，让角色、画面、声音和节奏在同一条生产线上保持一致。</p>
           </div>
-          <div class="episode-card"><span>EPISODE 01</span><b>雨夜的频率</b><small>目标时长 02:47 · 9:16 · 24 镜</small><div><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+          <div class="episode-card"><span>SEASON 01 · DEFAULT PLAN</span><b>60 集连续短剧</b><small>每集约 02:00 · 共 120 分钟 · 9:16</small><div><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
         </section>
 
         <section class="creative-brief card">
-          <div class="brief-head"><div><span class="section-kicker">创作指令</span><h2>本集的故事引擎</h2></div><span class="brief-status">✓ 已同步至 6 个 Agent</span></div>
+          <div class="brief-head"><div><span class="section-kicker">全季创作指令</span><h2>一句念头，先成为 60 集的故事引擎</h2></div><span class="brief-status">✓ 已同步至编剧、分镜、动画与审片 Agent</span></div>
           <textarea id="briefInput" aria-label="创作指令">暴雨将至的上海，失去记忆的电台主持人收到一段来自未来的语音。她必须在午夜前找到发信者，否则整座城市会陷入静默。</textarea>
           <div class="brief-footer"><div class="tag-list"><button class="tag active">都市悬疑</button><button class="tag active">女性向</button><button class="tag">2–3 分钟</button><button class="tag">9:16 竖屏</button><button class="tag">冷暖对照</button></div><button class="generate-button" id="runPipeline"><span>✦</span> AI 拆解并更新制作链 <kbd>⌘ ↵</kbd></button></div>
+        </section>
+
+        <section class="production-launchpad card" aria-label="全篇自动制作入口">
+          <div class="launchpad-copy">
+            <span class="section-kicker">NEXT BEST STEP · 由全季圣经驱动</span>
+            <h2>从一句话，编排到 60 集连续故事。</h2>
+            <p id="workflowNext">先锁定全季钩子和人物弧光，AI 会据此拆解 60 个两分钟单元，并把动画连续性传给下一集。</p>
+          </div>
+          <ol class="workflow-steps" id="workflowSteps" aria-label="制作流程进度">
+            <li class="done"><b>01</b><span>故事</span></li>
+            <li class="done"><b>02</b><span>圣经</span></li>
+            <li class="active"><b>03</b><span>分镜</span></li>
+            <li><b>04</b><span>生产</span></li>
+            <li><b>05</b><span>审片</span></li>
+            <li><b>06</b><span>交付</span></li>
+          </ol>
+          <div class="launchpad-action"><span><b id="workflowProgress">3 / 6</b><small>制作关卡</small></span><button class="generate-button" id="runFullProduction"><span>✦</span> 一键编排全篇 <kbd>⌘ ⇧ ↵</kbd></button></div>
+        </section>
+
+        <section class="season-planner card" id="season" aria-label="60集连续短剧故事总控">
+          <div class="season-header">
+            <div><span class="section-kicker">SEASON BIBLE · DEFAULT 60 × 2 MINUTES</span><h2>把一个念头，拆成一部连续短剧。</h2><p id="seasonPremise">暴雨将至的上海，失忆的电台主持人收到未来语音。她必须在午夜前找出发信者，否则整座城市会陷入静默。</p></div>
+            <div class="season-actions"><button class="outline-button" id="runSeasonCheck">✓ 连续性验收</button><button class="generate-button" id="generateSeasonPlan"><span>✦</span> 生成 60 集拆解</button></div>
+          </div>
+          <div class="season-metrics"><div><b id="seasonEpisodeCount">60</b><span>默认集数</span></div><div><b>02:00</b><span>每集目标时长</span></div><div><b>120<span>m</span></b><span>预计总时长</span></div><div><b id="seasonContinuityScore">94<span>分</span></b><span>故事与动画连续性</span></div></div>
+          <div class="season-arcs" id="seasonArcs" aria-label="五段故事弧线"></div>
+          <div class="season-workspace">
+            <div class="episode-board">
+              <div class="episode-board-head"><div><span class="section-kicker">EPISODE MAP</span><b id="episodeBoardLabel">全季 60 集 · 每集结尾都有下一集的理由</b></div><div class="episode-filters" id="episodeFilters"><button class="active" data-act-filter="all">全部 60</button><button data-act-filter="1">第一章</button><button data-act-filter="2">第二章</button><button data-act-filter="3">第三章</button><button data-act-filter="4">第四章</button><button data-act-filter="5">第五章</button></div></div>
+              <div class="episode-grid" id="episodeGrid" aria-label="60集拆解"></div>
+            </div>
+            <article class="episode-inspector" id="episodeInspector" aria-live="polite">
+              <div class="inspector-top"><span id="inspectorEpisode">EP 01 · 第一章</span><span class="episode-status">已拆解</span></div>
+              <h3 id="inspectorTitle">雨夜的频率</h3><p class="episode-logline" id="inspectorStory"></p>
+              <div class="episode-detail-list"><div><span>本集结尾钩子</span><b id="inspectorHook"></b></div><div><span>人物状态交接</span><b id="inspectorCharacter"></b></div><div><span>动画连续性锚点</span><b id="inspectorAnimation"></b></div><div><span>交给下一集</span><b id="inspectorHandoff"></b></div></div>
+              <button class="text-button" id="openEpisodeProduction">进入 EP01 制作台 ↗</button>
+            </article>
+          </div>
+          <p class="season-note">每集采用“上集钩子 → 本集目标 → 结尾反转 → 动画状态交接”结构。角色造型、天气、时间、道具和情绪曲线会持续传递，避免长剧常见的断层。</p>
         </section>
 
         <section class="overview-grid" aria-label="创作总览">
@@ -74,7 +116,7 @@
             <div class="health-list">
               <div><span>角色一致性</span><b>96%</b><i style="--progress:96%"></i></div>
               <div><span>故事可看性</span><b>91%</b><i style="--progress:91%"></i></div>
-              <div><span>镜头连续性</span><b>88%</b><i style="--progress:88%"></i></div>
+              <div><span>镜头连续性</span><b id="continuityScore">88%</b><i id="continuityMeter" style="--progress:88%"></i></div>
               <div><span>声音可用性</span><b>94%</b><i style="--progress:94%"></i></div>
             </div>
             <button class="recommendation" id="applyFix">✦ 建议：锁定镜头 04 的场景时间，连续性可提升至 94 分 <span>→</span></button>
@@ -87,7 +129,7 @@
         </section>
 
         <section class="section-block cast-section" id="cast">
-          <div class="section-title"><div><span class="section-number">02</span><div><h2>角色与世界圣经</h2><p>CAST, COSTUME &amp; CONSISTENCY ANCHORS</p></div></div><div><button class="outline-button" id="worldToggle">世界规则</button><button class="dark-button" id="newCharacter">+ 构造角色</button></div></div>
+          <div class="section-title"><div><span class="section-number">03</span><div><h2>角色与世界圣经</h2><p>CAST, COSTUME &amp; CONSISTENCY ANCHORS</p></div></div><div><button class="outline-button" id="worldToggle">世界规则</button><button class="dark-button" id="newCharacter">+ 构造角色</button></div></div>
           <div class="cast-layout">
             <aside class="cast-rail" id="castRail">
               <button class="cast-card selected" data-character="qingyan"><span class="cast-thumb qingyan"></span><span><b>沈清言</b><small>主角 · 电台主持人</small></span><i>●</i></button>
@@ -117,8 +159,8 @@
         </section>
 
         <section class="section-block storyboard-section" id="storyboard">
-          <div class="section-title"><div><span class="section-number">03</span><div><h2>AI 分镜台</h2><p>SHOT DESIGN, PERFORMANCE &amp; CONTINUITY</p></div></div><div><button class="outline-button" id="regenerateShots">↻ AI 重排节奏</button><button class="dark-button" id="addShot">+ 添加镜头</button></div></div>
-          <div class="storyboard-toolbar"><div class="sequence-tabs"><button class="active">序列 01 <b>08 镜</b></button><button>序列 02 <b>待生成</b></button></div><div class="continuity-badge"><span>✓</span> 角色、道具、时间线已联动 <button id="showRisks">2 个待审</button></div></div>
+          <div class="section-title"><div><span class="section-number">04</span><div><h2>AI 分镜台</h2><p>SHOT DESIGN, PERFORMANCE &amp; CONTINUITY</p></div></div><div><button class="outline-button" id="regenerateShots">↻ AI 重排节奏</button><button class="dark-button" id="addShot">+ 添加镜头</button></div></div>
+          <div class="storyboard-toolbar"><div class="sequence-tabs"><button class="active">序列 01 <b id="sequenceShotCount">08 / 24 镜</b></button><button>序列 02 <b>待编排</b></button></div><div class="continuity-badge"><span>✓</span> 角色、道具、时间线已联动 <button id="showRisks">2 个待审</button></div></div>
           <div class="shot-board">
             <div class="shot-list" id="shotGrid">
               <button class="shot-card selected" data-shot="1"><span class="shot-thumb shot-one"><b>01</b><i>CU</i></span><span><strong>雨夜的频率</strong><small>沈清言 · 特写 · 推近</small><em>4.2s</em></span></button>
@@ -142,26 +184,57 @@
           </div>
         </section>
 
+        <section class="section-block automation-section" id="automation">
+          <div class="section-title"><div><span class="section-number">05</span><div><h2>全篇自动制作</h2><p>ORCHESTRATE · BATCH PLAN · COST GUARD</p></div></div><button class="outline-button" id="saveVersion">＋ 保存当前版本</button></div>
+          <div class="automation-layout">
+            <article class="production-console card">
+              <div class="card-head"><div><span class="section-kicker">制作编排器</span><h2>先生成计划，再消耗额度</h2></div><span class="plan-state" id="productionState">等待编排</span></div>
+              <p class="console-intro">把已锁定的人物、世界规则与镜头上下文分配给剧本、视觉、镜头、声音和审片 Agent。未通过门禁的内容不会进入付费视频队列。</p>
+              <div class="production-route" id="productionRoute">
+                <div class="route-step done"><i>剧</i><span><b>剧本拆解</b><small>3 幕 · 12 节点</small></span><em>已就绪</em></div>
+                <div class="route-step done"><i>视</i><span><b>资产绑定</b><small>2 人物 · 3 场景</small></span><em>已就绪</em></div>
+                <div class="route-step active"><i>镜</i><span><b>全篇镜头</b><small id="plannedShotLabel">08 / 24 已编排</small></span><em id="plannedShotState">进行中</em></div>
+                <div class="route-step"><i>声</i><span><b>声音脚本</b><small>台词 / 环境 / 配乐</small></span><em>待启动</em></div>
+                <div class="route-step"><i>审</i><span><b>质检门禁</b><small>一致性 / 安全 / 字幕</small></span><em>待启动</em></div>
+              </div>
+              <div class="plan-controls"><div><span>当前 EP01 规格</span><b>02:47 · 9:16 · 24 镜</b></div><div><span>当前 EP01 用量</span><b><strong id="creditEstimate">38</strong> credits</b></div><div><span>本集生成预估</span><b id="renderEstimate">约 18 分钟</b></div></div>
+              <div class="console-actions"><button class="outline-button" id="approveBatch">预审 38 credits</button><button class="generate-button" id="startBatchRender"><span>✦</span> 生成全篇生产计划</button></div>
+              <p class="automation-note" id="automationNote">提示：计划编排不消耗模型额度；进入真实批量生成前仍会要求你确认预算。</p>
+            </article>
+            <aside class="quality-gate card">
+              <div class="card-head"><div><span class="section-kicker">交付前质量门禁</span><h2>先解决会毁掉成片的事</h2></div><span class="score-ring"><b id="qualityGateScore">92</b><small>/100</small></span></div>
+              <ul class="gate-list" id="qualityGateList">
+                <li class="passed"><span>✓</span><b>人物身份与服化锚点</b><em>通过</em></li>
+                <li class="passed"><span>✓</span><b>9:16 安全区与构图</b><em>通过</em></li>
+                <li class="pending"><span>!</span><b>镜头 04 时间连续性</b><em>待修复</em></li>
+                <li class="pending"><span>!</span><b>镜头 02 口型与台词</b><em>待试听</em></li>
+                <li class="passed"><span>✓</span><b>素材来源与发布风险</b><em>已标注</em></li>
+              </ul>
+              <button class="recommendation" id="fixQualityGate">✦ 修复 2 个低风险项 <span>→</span></button>
+            </aside>
+          </div>
+        </section>
+
         <section class="section-block dailies-section" id="dailies">
-          <div class="section-title"><div><span class="section-number">04</span><div><h2>样片与审片</h2><p>DAILIES REVIEW · CUT, SOUND &amp; NOTES</p></div></div><div class="review-members"><span>林</span><span>许</span><span>陈</span><button id="inviteReviewer">+ 审片人</button></div></div>
+          <div class="section-title"><div><span class="section-number">06</span><div><h2>样片与审片</h2><p>DAILIES REVIEW · CUT, SOUND &amp; NOTES</p></div></div><div class="review-members"><span>林</span><span>许</span><span>陈</span><button id="inviteReviewer">+ 审片人</button></div></div>
           <div class="dailies-layout">
             <article class="dailies-player card">
               <div class="player-stage" id="playerStage"><video id="previewVideo" playsinline preload="metadata" aria-label="已生成的样片视频"></video><div class="player-scene" id="playerAnimatic"><span>FM 97.4</span><div class="player-person"></div><div class="player-rain"></div></div><div class="player-top"><b id="previewKind">动态分镜预演</b><span id="playerTime">00:18 / 02:47</span></div><p class="subtitle" id="subtitle">“如果你听见这段话，说明雨已经开始下了。”</p><button class="player-button" id="playerButton" aria-label="播放动态分镜预演">▶</button></div>
               <div class="cut-timeline" id="cutTimeline"><span class="playhead"></span><i class="cut-a"></i><i class="cut-b"></i><i class="cut-c"></i><i class="cut-d"></i><i class="cut-e"></i></div>
-              <div class="player-footer"><div><b>样片 v03</b><small id="previewStatus">动态分镜预演 · 可直接播放；接入 Seedance 后将自动替换为成片</small></div><button class="text-button" id="openFullPreview">全屏审阅 ↗</button></div>
+              <div class="player-footer"><div><b id="previewVersion">样片 v03</b><small id="previewStatus">动态分镜预演 · 可直接播放；接入 Seedance 后将自动替换为成片</small></div><button class="text-button" id="openFullPreview">全屏审阅 ↗</button></div>
             </article>
             <article class="review-panel card">
-              <div class="card-head"><div><span class="section-kicker">AI 审片清单</span><h2>可交付前必须确认</h2></div><span class="review-score">92</span></div>
-              <div class="review-summary"><b>通过 7 / 9</b><span>高风险 0 · 需确认 2</span></div>
-              <div class="review-items" id="reviewItems"><button class="review-item passed"><span>✓</span><div><b>人物身份</b><small>与角色锚点相符</small></div><em>通过</em></button><button class="review-item passed"><span>✓</span><div><b>画面构图</b><small>竖屏安全区合格</small></div><em>通过</em></button><button class="review-item pending"><span>!</span><div><b>时间连续性</b><small>镜头 04 仍显示“黄昏”</small></div><em>待确认</em></button><button class="review-item pending"><span>!</span><div><b>口型与台词</b><small>镜头 02 建议人工试听</small></div><em>待确认</em></button></div>
+              <div class="card-head"><div><span class="section-kicker">AI 审片清单</span><h2>可交付前必须确认</h2></div><span class="review-score" id="reviewScore">92</span></div>
+              <div class="review-summary"><b id="reviewSummaryTitle">通过 6 / 8</b><span id="reviewSummaryMeta">高风险 0 · 需确认 2</span></div>
+              <div class="review-items" id="reviewItems"><button class="review-item passed"><span>✓</span><div><b>人物身份</b><small>与角色锚点相符</small></div><em>通过</em></button><button class="review-item passed"><span>✓</span><div><b>画面构图</b><small>竖屏安全区合格</small></div><em>通过</em></button><button class="review-item pending"><span>!</span><div><b>时间连续性</b><small>镜头 04 仍显示“黄昏”</small></div><em>待确认</em></button><button class="review-item pending"><span>!</span><div><b>口型与台词</b><small>镜头 02 建议人工试听</small></div><em>待确认</em></button><button class="review-item passed"><span>✓</span><div><b>声音层级</b><small>环境、配乐与旁白未冲突</small></div><em>通过</em></button><button class="review-item passed"><span>✓</span><div><b>字幕安全区</b><small>关键台词处于可读区域</small></div><em>通过</em></button></div>
               <button class="recommendation" id="reviewFix">✦ 一键修复 2 项低风险问题 <span>→</span></button>
             </article>
           </div>
         </section>
 
         <section class="delivery-section" id="delivery">
-          <div class="delivery-copy"><span class="section-kicker light">05 · DELIVERY GATE</span><h2>先过审，再让故事抵达观众。</h2><p>交付包将包含主版、平台裁切版、字幕、镜头清单和全部可追溯的创作资产。</p></div>
-          <div class="delivery-data"><div><b id="totalDuration">02:47</b><span>预计成片</span></div><div><b id="deliverableShots">24</b><span>待交付镜头</span></div><div><b>92<small>分</small></b><span>质检分数</span></div><button id="finalizeProject">进入交付检查 <span>→</span></button></div>
+          <div class="delivery-copy"><span class="section-kicker light">07 · DELIVERY GATE</span><h2>先过审，再让故事抵达观众。</h2><p>交付包将包含主版、平台裁切版、字幕、镜头清单和全部可追溯的创作资产。</p></div>
+          <div class="delivery-data"><div><b id="totalDuration">02:47</b><span>预计成片</span></div><div><b id="deliverableShots">08 / 24</b><span>已锁镜头</span></div><div><b id="deliveryScore">92<small>分</small></b><span>质检分数</span></div><button id="finalizeProject">完成审片后进入交付 <span>→</span></button></div>
         </section>
 
         <footer><span>映界 AI 短剧创作台 · 可追溯的角色、镜头与审片决策</span><span>生成内容需经人工审核后发布</span></footer>

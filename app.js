@@ -29,6 +29,105 @@ const shots = {
   8: { id: '08', title: '信号塔亮起', cls: 'shot-four', size: '全景 WS', movement: '缓慢推进', duration: '5.2', emotion: '紧张、失控', note: '（远处传来同一段录音）', caption: '信号塔在雨幕中亮起第一束红光。', prompt: '暴雨中孤立的信号塔全景，顶部红灯穿透雨雾，末日悬疑感，镜头缓慢推进。' }
 };
 
+const DEFAULT_SEASON_PREMISE = '暴雨将至的上海，失去记忆的电台主持人收到一段来自未来的语音。她必须在午夜前找到发信者，否则整座城市会陷入静默。';
+const seasonBlueprint = [
+  {
+    title: '第一章 · 失去的信号', range: 'EP01—12', summary: '一个来自未来的声音，撕开了沈清言被抹去的记忆。',
+    characterState: '沈清言从守规则的主持人，变成主动怀疑自己过去的人；陆予泽只以声音存在。',
+    animationRule: '雨线始终右上向左下倾斜；红色 ON AIR 灯只在真相靠近时闪烁。',
+    episodes: [
+      ['雨夜的频率', '深夜节目结束后，陌生红灯接通，未来男声准确说出沈清言明天会忘记什么。', '男声留下地址：那里有她从未见过的工作证。'],
+      ['空白记录', '她在电台日志里发现整整三个月被撕掉，监控却显示她每天都来上班。', '被删除的日期，正是未来语音所说的明天。'],
+      ['失声街区', '她去地址所在街区，整条街的广播同时失声，只有她的耳机还在播报。', '耳机里响起自己的声音：不要回头。'],
+      ['未寄出的录音', '旧信箱里有一盘她写给自己的录音，里面命令她不要相信任何熟人。', '录音末尾出现第二个女声，说自己才是沈清言。'],
+      ['听众编号零', '她追到编号为零的匿名听众，发现那是电台内部一个被封存的求救频道。', '频道记录显示，陆予泽曾在十年前死于雨夜。'],
+      ['档案室的潮痕', '档案室地面留下新鲜雨水，她找到一份被改写的死亡报告。', '报告照片里，陆予泽正站在她身后。'],
+      ['第一段未来', '陆予泽的语音传来第一段未来新闻：零点，上海会失去所有声音。', '新闻主播的名字，竟是未来的沈清言。'],
+      ['陆予泽', '沈清言第一次见到活着的陆予泽，他否认发过语音，却认识她耳骨夹的来历。', '陆予泽说：耳骨夹里藏着你亲手删掉的记忆。'],
+      ['被删掉的节目', '两人恢复一段旧节目，听见沈清言曾在直播中请求全城不要接听电话。', '节目播完，停播令突然下达。'],
+      ['电台停播令', '台长要求她立刻关台，沈清言却发现停播令来自未来时间戳。', '她选择在最后一分钟继续直播。'],
+      ['她记得的谎言', '直播中，她想起自己曾主动抹除记忆，只为了藏起一个发射坐标。', '坐标指向城市中心的备用信号塔。'],
+      ['失控的直播', '她公开未来语音，观众热线瞬间涌入，每个人都听见不同版本的自己。', '一位听众说：真正的发信者正在直播间。']
+    ]
+  },
+  {
+    title: '第二章 · 追踪未来', range: 'EP13—24', summary: '两人追查备用信号塔，过去的选择开始反过来追捕他们。',
+    characterState: '沈清言开始相信陆予泽，却发现他与记忆删除有关；陆予泽由旁观者变成共犯。',
+    animationRule: '移动镜头保持雨夜蓝与琥珀车灯；录音机永远在画面右下安全区。',
+    episodes: [
+      ['雨夜出租车', '两人抢在停播前离开电台，出租车司机却能背诵沈清言从未发表的节目单。', '司机把车开向没有出口的第七码头。'],
+      ['第七码头', '码头仓库里堆满被淘汰的收音机，每一台都在播放不同年份的同一场雨。', '其中一台播放着陆予泽死亡当晚的呼救。'],
+      ['失踪主持人', '沈清言查到十年前还有一名主持人失踪，她正是自己被删除记忆前的搭档。', '搭档的最后通话，来自未来信号塔。'],
+      ['旧照片的第三人', '旧照片里除了沈清言和陆予泽，还有一个被剪掉脸的第三人。', '陆予泽承认第三人是删除记忆的执行者。'],
+      ['反向追踪', '他们用未来语音反向定位，发现信号来自沈清言尚未进入的公寓。', '房门打开，里面坐着一位更年长的沈清言。'],
+      ['被篡改的记忆', '年长的沈清言只存在十秒，她警告记忆不是被删除，而是被人替换。', '墙上的钟跳到 00:17 后全屋断电。'],
+      ['00:17', '每到 00:17，城市会重复十四分钟，只有两人保留记忆。', '循环里，陆予泽第一次承认自己本该死去。'],
+      ['被监听的家', '沈清言回家取旧物，发现家里所有电器都在监听她的呼吸。', '冰箱里藏着一张写有“别救我”的纸条。'],
+      ['陆予泽的条件', '陆予泽提出交换：想知道发信者，就必须先帮他恢复死亡前的记忆。', '恢复仪启动后，他喊出了沈清言从前的名字。'],
+      ['备用发射塔', '两人抵达信号塔外围，发现门禁只接受未来沈清言的声纹。', '沈清言的声音自动通过验证。'],
+      ['昨日的自己', '塔内存着她昨日录制的影像，影像里的她说不要相信现在的陆予泽。', '影像突然被人远程删除。'],
+      ['电话那端的沈清言', '未来电话再次接通，发信者坦白：她就是还未失忆的沈清言。', '未来的她说，陆予泽会在下一次循环杀死她。']
+    ]
+  },
+  {
+    title: '第三章 · 双线迷局', range: 'EP25—36', summary: '未来的自己、活着的陆予泽与被偷走的十四分钟，组成一场双线审判。',
+    characterState: '沈清言在“现在的自己”和“未来的自己”之间夺回判断权；陆予泽的动机不再可信。',
+    animationRule: '同一空间出现双层倒影；未来线采用低饱和雾紫，现在线保持冷蓝高对比。',
+    episodes: [
+      ['未来的广播', '未来沈清言播出一份死亡名单，名单第一位是现在的陆予泽。', '陆予泽在名单里看到沈清言的第二次死亡时间。'],
+      ['同一张脸', '沈清言在镜面世界遇见替换记忆的第三人，对方竟有和她完全相同的脸。', '第三人递来一把能切断循环的钥匙。'],
+      ['消失的十四分钟', '两人重走循环，找回被抹去的十四分钟：沈清言曾亲手推陆予泽进雨里。', '陆予泽说那是为了救她。'],
+      ['第三名发信者', '第三人自称是信号系统的维护员，真正的发信者并非未来沈清言。', '她放出录音：发信者的呼吸属于现在的陆予泽。'],
+      ['城市静默演练', '城市以演练名义试行静默，市民开始逐渐忘记刚刚说过的话。', '沈清言发现台长正协助执行静默。'],
+      ['没有出口的地铁', '她追台长进入地铁，列车每一站都回到同一块广告屏。', '广告屏显示：陆予泽是系统的第一名测试者。'],
+      ['她的旧名字', '台长叫出沈清言删除前的姓名，并说她曾请求系统制造未来语音。', '沈清言的耳骨夹自行播放一段道歉。'],
+      ['叛徒在直播间', '电台内部有人把他们的位置直播给系统，沈清言必须当众找出叛徒。', '叛徒摘下耳机，露出与第三人相同的伤痕。'],
+      ['录音机里的心跳', '旧录音机记录着两颗不同节奏的心跳，其中一颗在未来时间才会出现。', '心跳在零点前突然停止。'],
+      ['陆予泽消失', '陆予泽被系统拖入下一轮循环，只留下带血的发射塔通行卡。', '卡背面写着：别让我回来。'],
+      ['不该醒来的记忆', '沈清言恢复最痛的一段：她曾用陆予泽的记忆换取城市的安静。', '交换契约规定，午夜必须重启系统。'],
+      ['午夜重启', '重启提前发生，雨夜被切成无数帧，所有人开始重复最后一句话。', '未来沈清言在碎片里说：这次别关掉声音。']
+    ]
+  },
+  {
+    title: '第四章 · 倒计时', range: 'EP37—48', summary: '城市每静默一分，真相就多消失一层；沈清言必须让所有人重新接听。',
+    characterState: '沈清言放弃独自拯救，转向让全城成为见证者；陆予泽从变量变成她必须承担的代价。',
+    animationRule: '雨量逐集减弱、城市环境音逐集抽离；红灯由局部光源变为全城视觉母题。',
+    episodes: [
+      ['街头无声', '静默开始扩散，街道只剩脚步和雨滴，沈清言决定把直播变成求救信号。', '一盏红色路灯为她亮起回应。'],
+      ['最后频率', '她找到不受系统控制的老频率，第一次让失声市民听见彼此。', '频率另一端传来陆予泽的呼吸。'],
+      ['跑出直播间', '台长封锁电台，沈清言带着便携设备穿过失声的街区。', '她在雨幕里看见未来的自己正在逃跑。'],
+      ['被复制的声音', '系统复制沈清言的声线发布假指令，市民无法分辨哪一个她是真的。', '陆予泽用死亡前的口令识破了假声音。'],
+      ['信号塔之门', '两人再次站到信号塔前，通行卡只够一个人进入核心。', '陆予泽把卡塞给她，门却同时为两人打开。'],
+      ['雨停之前', '塔顶显示雨会在零点停止，而雨停意味着所有记忆永久固化。', '沈清言决定在雨停前公开自己的罪。'],
+      ['每个人的未来', '她让市民接收一秒钟未来，各自看见最想忘掉的一件事。', '有人在未来画面里看见沈清言从塔顶坠落。'],
+      ['反向直播', '沈清言反向入侵系统，把未来画面直播给过去的自己。', '过去的她终于发来回应：别选我。'],
+      ['城市开始忘记', '系统加速抹除记忆，陆予泽开始忘记沈清言的名字。', '他却记得一句她从未对他说过的告白。'],
+      ['沈清言的选择', '第三人提出唯一方案：保存城市或保存陆予泽，不能两者兼得。', '沈清言没有选择，而是关掉自己的记忆接口。'],
+      ['十二点前', '失去部分记忆的她靠录音机留下的情绪线索继续攀塔。', '录音里传来未来的她：你已经做过一次选择。'],
+      ['她关掉了声音', '为阻止系统，沈清言按下静音键，城市真的彻底无声。', '黑暗里，唯一亮着的是她耳骨夹的红灯。']
+    ]
+  },
+  {
+    title: '第五章 · 重写昨天', range: 'EP49—60', summary: '当城市失去声音，沈清言以记忆为筹码，重写那个决定所有人的昨天。',
+    characterState: '沈清言完成从被动接听者到主动发信者的弧光；陆予泽得到被记住而非被拯救的结局。',
+    animationRule: '雨停后保留地面反光，色彩由冷蓝回归低饱和琥珀；结局红灯只出现一次。',
+    episodes: [
+      ['没有声音的上海', '无声城市里，沈清言通过振动与眼神组织幸存者，寻找系统的物理开关。', '一个孩子在玻璃上写下陆予泽的名字。'],
+      ['失忆者联盟', '被系统影响最深的人聚在电台，他们各自保留一段沈清言遗失的记忆。', '其中一段记忆证明第三人从未存在。'],
+      ['反转的发信人', '沈清言确认发信者一直是现在的自己，只是借未来系统把话送回过去。', '她必须回到第一次删除记忆的夜晚。'],
+      ['陆予泽归来', '陆予泽带着残缺记忆回来，他承认自己不是被救下，而是被沈清言制造出来的备份。', '备份将在雨停时自动消失。'],
+      ['未来被删除', '两人进入记忆核心，未来画面开始逐张消失，连死亡名单也不再可靠。', '只剩一段未删除的直播回放。'],
+      ['最后一档节目', '沈清言回到第一次节目的控制台，决定把真相完整讲给全城听。', '系统用她母亲的声音要求她立刻关麦。'],
+      ['全城接听', '市民用各自的记忆补完她讲述的空白，静默系统第一次失去唯一叙事权。', '耳骨夹发出最后一次未来提示。'],
+      ['记忆的代价', '提示告诉她：想让城市恢复声音，必须抹去所有人对陆予泽的记忆。', '陆予泽主动按下确认。'],
+      ['再见，未来', '沈清言拒绝让陆予泽被彻底遗忘，把他的声音藏进一段无署名的节目片头。', '雨停，城市重新听见第一声车鸣。'],
+      ['雨后的红灯', '一切恢复正常，沈清言回到直播间，红灯却在没有来电时亮起。', '录音机里传来陌生女孩的求救。'],
+      ['新的听众', '她接起电话，听见女孩说自己来自另一个被静默的城市。', '沈清言在玻璃倒影里看见陆予泽微笑。'],
+      ['昨日信号', '沈清言开始新节目，把所有失而复得的声音留在城市夜里。', '最后一秒，红灯再次闪烁，为下一季留下新的信号。']
+    ]
+  }
+];
+
 const toast = $('#toast');
 const config = window.YINGJIE_CONFIG || {};
 const studioGateway = String(config.studioApiBaseUrl || config.videoApiBaseUrl || '').replace(/\/$/, '');
@@ -50,11 +149,138 @@ let saveInFlight = false;
 let saveQueued = false;
 let persistenceErrorShown = false;
 let projectMetadata = { status: 'creative-ready' };
+let fullProductionTimer;
+let fullProductionRunning = false;
 let activities = [
   { agent: '剧本架构师', content: '补强了女主的“失忆代价”动机。', kind: 'amber' },
   { agent: '视觉设定师', content: '已将雨夜蓝与琥珀红写入视觉规则。', kind: 'purple' },
   { agent: '镜头导演', content: '标记了 2 个需要人审的轴线风险。', kind: 'blue' }
 ];
+let selectedSeasonEpisode = 1;
+let seasonFilter = 'all';
+
+function createSeasonPlan(premise = DEFAULT_SEASON_PREMISE) {
+  let number = 0;
+  let previousHook = '一段来自未来的语音，打破了雨夜电台的最后平静。';
+  const acts = seasonBlueprint.map((chapter, actIndex) => ({
+    id: actIndex + 1,
+    title: chapter.title,
+    range: chapter.range,
+    summary: chapter.summary
+  }));
+  const episodes = seasonBlueprint.flatMap((chapter, actIndex) => chapter.episodes.map(([title, story, hook]) => {
+    number += 1;
+    const episode = {
+      id: `ep-${String(number).padStart(2, '0')}`,
+      number,
+      act: actIndex + 1,
+      actTitle: chapter.title,
+      title,
+      story,
+      hook,
+      previousHook,
+      characterState: chapter.characterState,
+      animationAnchor: chapter.animationRule,
+      handoff: `下一集从「${hook}」直接接起，保留上一集的情绪峰值与关键道具。`,
+      duration: 120,
+      status: 'outlined'
+    };
+    previousHook = hook;
+    return episode;
+  }));
+  return {
+    version: 1,
+    premise: premise.trim() || DEFAULT_SEASON_PREMISE,
+    episodeCount: 60,
+    episodeDurationMinutes: 2,
+    totalMinutes: 120,
+    continuityScore: 94,
+    generatedAt: new Date().toISOString(),
+    acts,
+    episodes
+  };
+}
+
+function ensureSeasonPlan() {
+  const plan = projectMetadata.seasonPlan;
+  if (!plan || !Array.isArray(plan.episodes) || plan.episodes.length !== 60) {
+    projectMetadata.seasonPlan = createSeasonPlan($('#briefInput')?.value || DEFAULT_SEASON_PREMISE);
+  }
+  return projectMetadata.seasonPlan;
+}
+
+function seasonEpisodeByNumber(number) {
+  return ensureSeasonPlan().episodes.find(episode => episode.number === Number(number));
+}
+
+function renderSeasonPlan() {
+  const plan = ensureSeasonPlan();
+  const episodeGrid = $('#episodeGrid');
+  if (!episodeGrid) return;
+  setText('#seasonPremise', plan.premise);
+  setText('#seasonEpisodeCount', String(plan.episodeCount || plan.episodes.length));
+  setText('#seasonContinuityScore', String(plan.continuityScore || 94));
+
+  const arcs = $('#seasonArcs');
+  if (arcs) {
+    arcs.replaceChildren();
+    (plan.acts || []).forEach((act, index) => {
+      const node = document.createElement('div');
+      node.className = 'season-arc';
+      const range = document.createElement('span');
+      range.textContent = `${String(index + 1).padStart(2, '0')} · ${act.range}`;
+      const title = document.createElement('b');
+      title.textContent = act.title.replace(/^第.章 · /, '');
+      const summary = document.createElement('small');
+      summary.textContent = act.summary;
+      node.append(range, title, summary);
+      arcs.append(node);
+    });
+  }
+
+  const visibleEpisodes = seasonFilter === 'all' ? plan.episodes : plan.episodes.filter(episode => episode.act === Number(seasonFilter));
+  episodeGrid.replaceChildren();
+  visibleEpisodes.forEach(episode => {
+    const cell = document.createElement('button');
+    cell.className = `episode-cell${episode.number === selectedSeasonEpisode ? ' active' : ''}`;
+    cell.dataset.act = String(episode.act);
+    cell.dataset.episode = String(episode.number);
+    const code = document.createElement('span');
+    code.textContent = `EP ${String(episode.number).padStart(2, '0')}`;
+    const title = document.createElement('b');
+    title.textContent = episode.title;
+    const hook = document.createElement('small');
+    hook.textContent = episode.hook;
+    cell.append(code, title, hook);
+    cell.addEventListener('click', () => selectSeasonEpisode(episode.number));
+    episodeGrid.append(cell);
+  });
+
+  $$('#episodeFilters button').forEach(button => button.classList.toggle('active', button.dataset.actFilter === seasonFilter));
+  const actLabel = seasonFilter === 'all' ? '全季 60 集' : (plan.acts || [])[Number(seasonFilter) - 1]?.title || '当前章节';
+  setText('#episodeBoardLabel', `${actLabel} · 每集结尾都有下一集的理由`);
+  renderSeasonInspector(seasonEpisodeByNumber(selectedSeasonEpisode) || plan.episodes[0]);
+}
+
+function renderSeasonInspector(episode) {
+  if (!episode) return;
+  setText('#inspectorEpisode', `EP ${String(episode.number).padStart(2, '0')} · ${episode.actTitle}`);
+  setText('#inspectorTitle', episode.title);
+  setText('#inspectorStory', episode.story);
+  setText('#inspectorHook', episode.hook);
+  setText('#inspectorCharacter', episode.characterState);
+  setText('#inspectorAnimation', episode.animationAnchor);
+  setText('#inspectorHandoff', episode.handoff);
+  setText('#openEpisodeProduction', `进入 EP${String(episode.number).padStart(2, '0')} 制作台 ↗`);
+}
+
+function selectSeasonEpisode(number) {
+  const episode = seasonEpisodeByNumber(number);
+  if (!episode) return;
+  selectedSeasonEpisode = episode.number;
+  if (seasonFilter !== 'all' && String(episode.act) !== seasonFilter) seasonFilter = String(episode.act);
+  renderSeasonPlan();
+}
 
 function notify(message) {
   setText('#toastText', message);
@@ -224,8 +450,127 @@ async function saveProject() {
 
 function updateShotCount() {
   const amount = $$('.shot-card').length;
+  const target = getProduction().targetShots;
   setText('#shotNavCount', String(amount).padStart(2, '0'));
-  setText('.sequence-tabs button.active b', `${String(amount).padStart(2, '0')} 镜`);
+  setText('#sequenceShotCount', `${String(amount).padStart(2, '0')} / ${target} 镜`);
+  setText('#deliverableShots', `${String(amount).padStart(2, '0')} / ${target}`);
+}
+
+function getProduction() {
+  const previous = projectMetadata.production || {};
+  const targetShots = Number.isInteger(previous.targetShots) && previous.targetShots > 0 ? previous.targetShots : 24;
+  projectMetadata.production = {
+    targetShots,
+    plannedShots: Number.isInteger(previous.plannedShots) ? previous.plannedShots : Object.keys(shots).length,
+    budgetCredits: Number.isFinite(Number(previous.budgetCredits)) ? Number(previous.budgetCredits) : 38,
+    renderMinutes: Number.isFinite(Number(previous.renderMinutes)) ? Number(previous.renderMinutes) : 18,
+    budgetApproved: Boolean(previous.budgetApproved),
+    planReady: Boolean(previous.planReady),
+    status: previous.status || 'idle',
+    version: Number.isInteger(previous.version) && previous.version > 0 ? previous.version : 3
+  };
+  return projectMetadata.production;
+}
+
+function workflowStageCount() {
+  const production = getProduction();
+  if (projectMetadata.deliveryGatePassed && production.planReady && projectMetadata.reviewPassed) return 6;
+  if (production.planReady && projectMetadata.reviewPassed) return 5;
+  if (production.planReady) return 4;
+  return 3;
+}
+
+function setWorkflowSteps(count) {
+  $$('#workflowSteps li').forEach((item, index) => {
+    item.classList.toggle('done', index < count);
+    item.classList.toggle('active', index === count && count < 6);
+  });
+}
+
+function renderProductionState() {
+  const production = getProduction();
+  const count = workflowStageCount();
+  const statuses = { idle: '等待编排', running: '正在编排', ready: '计划已就绪', delivered: '已交付' };
+  const state = $('#productionState');
+  if (state) {
+    state.textContent = statuses[production.status] || statuses.idle;
+    state.className = `plan-state${production.status === 'running' ? ' running' : production.planReady || production.status === 'delivered' ? ' ready' : ''}`;
+  }
+  setText('#workflowProgress', `${count} / 6`);
+  setText('#sidebarProgress', `${count} / 6`);
+  setWorkflowSteps(count);
+  setText('#plannedShotLabel', `${String(Math.min(production.plannedShots, production.targetShots)).padStart(2, '0')} / ${production.targetShots} 已编排`);
+  setText('#plannedShotState', production.planReady ? '已完成' : production.status === 'running' ? '编排中' : '进行中');
+  setText('#creditEstimate', String(production.budgetCredits));
+  setText('#renderEstimate', `约 ${production.renderMinutes} 分钟`);
+  const approve = $('#approveBatch');
+  if (approve) {
+    approve.textContent = production.budgetApproved ? `✓ 已预审 ${production.budgetCredits} credits` : `预审 ${production.budgetCredits} credits`;
+    approve.classList.toggle('is-approved', production.budgetApproved);
+  }
+  setText('#previewVersion', `样片 v${String(production.version).padStart(2, '0')}`);
+
+  const stepCopy = projectMetadata.deliveryGatePassed
+    ? '交付包已通过门禁：主版、平台裁切、字幕与镜头资产均可导出。'
+    : production.planReady && projectMetadata.reviewPassed
+      ? '审片已通过。现在可进入交付门禁，生成可发布的交付包。'
+      : production.planReady
+        ? '全篇计划已编排。请完成两个低风险审片项，再开启交付。'
+        : '先确认故事钩子与世界规则，AI 会据此补齐 24 镜、声音层与审片门禁。';
+  setText('#workflowNext', stepCopy);
+  updateShotCount();
+}
+
+function markRouteStep(index, state, note) {
+  const item = $$('#productionRoute .route-step')[index];
+  if (!item) return;
+  item.classList.remove('done', 'active', 'running');
+  if (state) item.classList.add(state);
+  if (note) setText('em', note, item);
+}
+
+function renderQualityState() {
+  const passed = Boolean(projectMetadata.reviewPassed);
+  const score = passed ? 97 : 92;
+  setText('#qualityGateScore', String(score));
+  setText('#reviewScore', String(score));
+  const deliveryScore = $('#deliveryScore');
+  if (deliveryScore) deliveryScore.innerHTML = `${score}<small>分</small>`;
+  if (!passed) return;
+  $$('.review-item.pending, .gate-list .pending').forEach(item => {
+    item.classList.remove('pending');
+    item.classList.add('passed');
+    setText('span', '✓', item);
+    setText('em', '已修复', item);
+  });
+  setText('#reviewSummaryTitle', '通过 8 / 8');
+  setText('#reviewSummaryMeta', '高风险 0 · 需确认 0');
+  const reviewFix = $('#reviewFix');
+  if (reviewFix) {
+    reviewFix.innerHTML = '✓ 8 项审片门禁已通过 <span>→</span>';
+    reviewFix.style.color = '#4e8660';
+    reviewFix.style.background = '#f0f8ee';
+  }
+  const qualityFix = $('#fixQualityGate');
+  if (qualityFix) {
+    qualityFix.innerHTML = '✓ 质量门禁已通过 <span>→</span>';
+    qualityFix.style.color = '#4e8660';
+    qualityFix.style.background = '#f0f8ee';
+  }
+}
+
+function passQualityGate() {
+  projectMetadata.reviewPassed = true;
+  projectMetadata.healthScore = 97;
+  setText('#healthScore', '97');
+  setText('#continuityScore', '96%');
+  const continuityMeter = $('#continuityMeter');
+  if (continuityMeter) continuityMeter.style.setProperty('--progress', '96%');
+  renderQualityState();
+  renderProductionState();
+  addFeed('审片助手', '已修复时间与口型低风险项，8 项交付前门禁全部通过。', 'blue');
+  notify('质量门禁已通过：8 / 8 项合格，可以进入交付检查。');
+  scheduleProjectSave();
 }
 
 function populateShotEditor(shot) {
@@ -399,20 +744,16 @@ function renderPersistedProductionState() {
     $('#applyFix').innerHTML = '✓ 已锁定为「午夜暴雨」<span>→</span>';
     $('#applyFix').style.color = '#4e8660';
     $('#applyFix').style.background = '#f0f8ee';
+    setText('#continuityScore', '94%');
+    const continuityMeter = $('#continuityMeter');
+    if (continuityMeter) continuityMeter.style.setProperty('--progress', '94%');
   }
-  if (projectMetadata.reviewPassed) {
-    $$('.review-item.pending').forEach(item => {
-      item.classList.remove('pending');
-      item.classList.add('passed');
-      setText('span', '✓', item);
-      setText('em', '已修复', item);
-    });
-    $('.review-summary').innerHTML = '<b>通过 9 / 9</b><span>高风险 0 · 需确认 0</span>';
-    $('#reviewFix').innerHTML = '✓ 已修复所有低风险问题 <span>→</span>';
-    $('#reviewFix').style.color = '#4e8660';
-    $('#reviewFix').style.background = '#f0f8ee';
+  renderQualityState();
+  if (projectMetadata.deliveryGatePassed) {
+    getProduction().status = 'delivered';
+    $('#finalizeProject').innerHTML = '✓ 交付门禁已通过 <span>→</span>';
   }
-  if (projectMetadata.deliveryGatePassed) $('#finalizeProject').innerHTML = '✓ 交付门禁已通过 <span>→</span>';
+  renderProductionState();
 }
 
 function renderWorldRules(rules) {
@@ -450,6 +791,7 @@ function applyStudio(studio) {
   selectShot(selectedShot);
   renderBeat($('.beat-tab.active')?.dataset.act || 'act1');
   renderPersistedProductionState();
+  renderSeasonPlan();
   hydratePreviewState();
   updateShotCount();
 }
@@ -523,6 +865,61 @@ $$('.nav-item').forEach(link => link.addEventListener('click', () => {
   link.classList.add('active');
 }));
 
+$$('#episodeFilters button').forEach(button => button.addEventListener('click', () => {
+  seasonFilter = button.dataset.actFilter || 'all';
+  const plan = ensureSeasonPlan();
+  if (seasonFilter !== 'all' && !plan.episodes.some(episode => episode.number === selectedSeasonEpisode && episode.act === Number(seasonFilter))) {
+    selectedSeasonEpisode = plan.episodes.find(episode => episode.act === Number(seasonFilter))?.number || selectedSeasonEpisode;
+  }
+  renderSeasonPlan();
+}));
+
+$('#generateSeasonPlan').addEventListener('click', event => {
+  const brief = $('#briefInput').value.trim();
+  if (!brief) return notify('先写下故事念头，AI 才能为你拆解 60 集。');
+  const button = event.currentTarget;
+  button.disabled = true;
+  button.innerHTML = '<span>✦</span> 正在编排 60 集…';
+  setTimeout(() => {
+    projectMetadata.seasonPlan = createSeasonPlan(brief);
+    selectedSeasonEpisode = 1;
+    seasonFilter = 'all';
+    renderSeasonPlan();
+    button.disabled = false;
+    button.innerHTML = '<span>✦</span> 重新生成 60 集拆解';
+    addFeed('剧本架构师', '已完成 60 集 × 2 分钟的连续拆解，并为每集写入钩子与交接规则。', 'amber');
+    scheduleProjectSave();
+    notify('全季故事已拆解：60 集、5 段弧线、120 分钟，动画连续性已锁定。');
+  }, 850);
+});
+
+$('#runSeasonCheck').addEventListener('click', event => {
+  const plan = ensureSeasonPlan();
+  const button = event.currentTarget;
+  button.disabled = true;
+  button.textContent = '连续性验收中…';
+  setTimeout(() => {
+    plan.continuityScore = 96;
+    plan.checkedAt = new Date().toISOString();
+    renderSeasonPlan();
+    setText('#healthScore', '96');
+    projectMetadata.healthScore = 96;
+    button.disabled = false;
+    button.innerHTML = '✓ 60 集连续性通过';
+    addFeed('连续性监制', '已验证 60 集的钩子承接、人物状态与动画锚点，未发现断层。', 'blue');
+    scheduleProjectSave();
+    notify('连续性验收通过：60 / 60 集都有上集承接与下一集钩子；本集审片门禁仍需单独完成。');
+  }, 700);
+});
+
+$('#openEpisodeProduction').addEventListener('click', () => {
+  const episode = seasonEpisodeByNumber(selectedSeasonEpisode);
+  if (!episode) return;
+  setText('.breadcrumbs b', `第 ${String(episode.number).padStart(2, '0')} 集 · ${episode.title}`);
+  $('#storyboard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  notify(`已加载 EP${String(episode.number).padStart(2, '0')} 的故事交接：分镜会继承「${episode.hook}」。`);
+});
+
 const productionStages = [
   ['剧本架构师', '已根据新指令校验人物动机与钩子密度。', 'amber'],
   ['视觉设定师', '已把角色锚点和天气规则同步到镜头提示词。', 'purple'],
@@ -559,7 +956,81 @@ function runPipeline() {
   next();
 }
 $('#runPipeline').addEventListener('click', runPipeline);
+
+function runFullProductionPlan() {
+  if (fullProductionRunning) return;
+  if (!$('#briefInput').value.trim()) return notify('请先写下全季创作指令，再开始 60 集生产编排。');
+  fullProductionRunning = true;
+  const production = getProduction();
+  production.status = 'running';
+  production.planReady = false;
+  production.plannedShots = Math.max(Object.keys(shots).length, 8);
+  const launchButton = $('#runFullProduction');
+  const planButton = $('#startBatchRender');
+  [launchButton, planButton].forEach(button => { if (button) button.disabled = true; });
+  if (launchButton) launchButton.innerHTML = '<span>✦</span> 正在编排全季…';
+  if (planButton) planButton.innerHTML = '<span>✦</span> 正在生成计划…';
+  renderProductionState();
+
+  const stages = [
+    { route: 0, state: 'running', note: '校验中', agent: '剧本架构师', copy: '已把 60 集钩子、反转和章末悬念拆成可连续生产的故事路线。', planned: 8 },
+    { route: 1, state: 'running', note: '绑定中', agent: '视觉设定师', copy: '已把人物、天气、道具与禁用元素设为跨集可继承资产。', planned: 8 },
+    { route: 2, state: 'running', note: '补镜中', agent: '镜头导演', copy: '正在先补齐 EP01 的 24 镜，并继承全季动画连续性锚点。', planned: 16 },
+    { route: 3, state: 'running', note: '写入中', agent: '声音总监', copy: '已为每集写入台词情绪、环境声与跨集音乐转场规则。', planned: 24 },
+    { route: 4, state: 'running', note: '预检中', agent: '审片助手', copy: '已建立全季角色、连续性、字幕和素材来源的交付前门禁。', planned: 24 }
+  ];
+  let index = 0;
+  const next = () => {
+    if (index >= stages.length) {
+      production.status = 'ready';
+      production.planReady = true;
+      production.plannedShots = production.targetShots;
+      markRouteStep(2, 'done', '已完成');
+      markRouteStep(3, 'done', '已完成');
+      markRouteStep(4, 'active', '待审片');
+      renderProductionState();
+      [launchButton, planButton].forEach(button => { if (button) button.disabled = false; });
+      if (launchButton) launchButton.innerHTML = '<span>✓</span> 全季计划已就绪';
+      if (planButton) planButton.innerHTML = '<span>↻</span> 更新全季生产计划';
+      fullProductionRunning = false;
+      addFeed('制作编排器', '60 集生产路线已生成；EP01 的 24 镜、声音脚本与质量门禁已先行联动。', 'purple');
+      notify('全季生产计划已就绪：60 集故事交接已锁定，当前只编排 EP01，不会自动消耗全季额度。');
+      scheduleProjectSave();
+      return;
+    }
+    const stage = stages[index];
+    if (index > 0) markRouteStep(stages[index - 1].route, 'done', '已完成');
+    markRouteStep(stage.route, stage.state, stage.note);
+    production.plannedShots = stage.planned;
+    renderProductionState();
+    addFeed(stage.agent, stage.copy, stage.route === 2 || stage.route === 4 ? 'blue' : 'purple');
+    index += 1;
+    fullProductionTimer = setTimeout(next, 420);
+  };
+  next();
+}
+
+$('#runFullProduction').addEventListener('click', runFullProductionPlan);
+$('#startBatchRender').addEventListener('click', runFullProductionPlan);
+$('#approveBatch').addEventListener('click', () => {
+  const production = getProduction();
+  production.budgetApproved = !production.budgetApproved;
+  renderProductionState();
+  notify(production.budgetApproved
+    ? `已预审 ${production.budgetCredits} credits；生产计划可进入模型队列确认。`
+    : '已撤销预算预审；自动编排计划仍会保留。');
+  scheduleProjectSave();
+});
+$('#saveVersion').addEventListener('click', () => {
+  const production = getProduction();
+  production.version += 1;
+  renderProductionState();
+  addFeed('制作编排器', `已保存样片 v${String(production.version).padStart(2, '0')}，角色、镜头与审片状态可追溯。`, 'purple');
+  notify(`已保存样片 v${String(production.version).padStart(2, '0')}；后续修改不会覆盖当前版本。`);
+  scheduleProjectSave();
+});
 document.addEventListener('keydown', event => {
+  if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key === 'Enter') { event.preventDefault(); runFullProductionPlan(); return; }
   if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') { event.preventDefault(); runPipeline(); }
   if (event.key === 'Escape') { closePreviewModal(); closeModal($('#characterModal')); closeWorldModal(); }
 });
@@ -581,8 +1052,11 @@ $('#applyFix').addEventListener('click', () => {
   $('#applyFix').style.background = '#f0f8ee';
   projectMetadata.healthScore = 94;
   projectMetadata.timeContinuityLocked = true;
+  setText('#continuityScore', '94%');
+  $('#continuityMeter').style.setProperty('--progress', '94%');
   addFeed('审片助手', '已将镜头 04 场景时间锁定为午夜暴雨。', 'blue');
   notify('已修复时间连续性，创作健康度提升至 94 分');
+  renderProductionState();
   scheduleProjectSave();
 });
 
@@ -971,22 +1445,8 @@ $('#generateShot').addEventListener('click', async event => {
 });
 
 $('#playerButton').addEventListener('click', () => { void togglePlayer('player'); });
-$('#reviewFix').addEventListener('click', () => {
-  $$('.review-item.pending').forEach(item => {
-    item.classList.remove('pending');
-    item.classList.add('passed');
-    setText('span', '✓', item);
-    setText('em', '已修复', item);
-  });
-  $('.review-summary').innerHTML = '<b>通过 9 / 9</b><span>高风险 0 · 需确认 0</span>';
-  $('#reviewFix').innerHTML = '✓ 已修复所有低风险问题 <span>→</span>';
-  $('#reviewFix').style.color = '#4e8660';
-  $('#reviewFix').style.background = '#f0f8ee';
-  projectMetadata.reviewPassed = true;
-  addFeed('审片助手', '已修复镜头时间标签，并生成口型试听提醒。', 'blue');
-  notify('审片清单已通过：9 / 9 项合格，质检可进入交付门禁');
-  scheduleProjectSave();
-});
+$('#reviewFix').addEventListener('click', passQualityGate);
+$('#fixQualityGate').addEventListener('click', passQualityGate);
 $$('.review-item').forEach((item, index) => item.addEventListener('click', () => {
   if (!item.classList.contains('pending')) return notify('该项已通过，无需额外处理。');
   const shotId = index === 2 ? '4' : '2';
@@ -1021,7 +1481,16 @@ previewModal.addEventListener('click', event => { if (event.target === previewMo
 $('#modalPlay').addEventListener('click', () => { void togglePlayer('modal'); });
 
 function exportProject() {
-  const project = { name: '昨日信号', episode: 1, format: '9:16', brief: $('#briefInput').value, selectedCharacter: characters[selectedCharacter].name, characters: Object.values(characters).map(({ name, role, anchor, look }) => ({ name, role, anchor, look })), shots: Object.values(shots), exportedAt: new Date().toISOString(), status: 'creative-ready' };
+  const production = getProduction();
+  const project = {
+    name: '昨日信号', episode: 1, format: '9:16', brief: $('#briefInput').value,
+    selectedCharacter: characters[selectedCharacter].name,
+    characters: Object.values(characters).map(({ name, role, anchor, look }) => ({ name, role, anchor, look })),
+    shots: Object.values(shots),
+    season: ensureSeasonPlan(),
+    production: { ...production, reviewPassed: Boolean(projectMetadata.reviewPassed), deliveryGatePassed: Boolean(projectMetadata.deliveryGatePassed), qualityScore: projectMetadata.reviewPassed ? 97 : 92 },
+    exportedAt: new Date().toISOString(), status: projectMetadata.deliveryGatePassed ? 'delivery-ready' : production.planReady ? 'review-ready' : 'creative-ready'
+  };
   const url = URL.createObjectURL(new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' }));
   const link = document.createElement('a');
   link.href = url;
@@ -1033,8 +1502,19 @@ function exportProject() {
 $('#exportBtn').addEventListener('click', exportProject);
 $('#modalExport').addEventListener('click', exportProject);
 $('#finalizeProject').addEventListener('click', event => {
+  const production = getProduction();
+  if (!production.planReady) {
+    $('#automation').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return notify('请先生成全篇生产计划，确认 24 镜、声音脚本与质量门禁。');
+  }
+  if (!projectMetadata.reviewPassed) {
+    $('#dailies').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return notify('交付前还需要通过 2 项低风险审片门禁。');
+  }
   event.currentTarget.innerHTML = '✓ 交付门禁已通过 <span>→</span>';
   projectMetadata.deliveryGatePassed = true;
+  production.status = 'delivered';
+  renderProductionState();
   notify('交付检查已开启：将输出主版、平台裁切、字幕和镜头资产清单。');
   scheduleProjectSave();
 });
@@ -1046,9 +1526,12 @@ const observer = new IntersectionObserver(entries => {
   const target = id === 'dashboard' ? 'dashboard' : id;
   $$('.nav-item').forEach(link => link.classList.toggle('active', link.dataset.target === target));
 }, { threshold: .35 });
-['dashboard', 'cast', 'storyboard', 'dailies', 'delivery'].forEach(id => observer.observe(document.getElementById(id)));
+['dashboard', 'season', 'cast', 'storyboard', 'automation', 'dailies', 'delivery'].forEach(id => observer.observe(document.getElementById(id)));
 
 populateShotEditor(shots[1]);
 updateShotCount();
 renderFeed();
+renderSeasonPlan();
+renderQualityState();
+renderProductionState();
 loadProject();
