@@ -35,6 +35,7 @@ PORT=8787
 JOB_LIMIT_MAX=3
 JOB_LIMIT_WINDOW_SECONDS=300
 TRUST_PROXY=false
+DATABASE_PATH=./data/yingjie.db
 ```
 
 `CORS_ORIGINS` 必须是网页实际部署地址的**完整 Origin**（协议 + 域名 + 可选端口），例如 `https://zeng-jm123.github.io`；不带路径、不加末尾 `/`。如果有预发布站点，用逗号追加它的 Origin。只有部署平台的反向代理会可靠覆写 `X-Forwarded-For` 时，才把 `TRUST_PROXY` 设为 `true`。
@@ -57,7 +58,9 @@ curl http://localhost:8787/healthz
 
 ## 发布视频网关
 
-服务没有第三方运行时依赖，任意支持 Docker 或 Node 20 的服务都可部署。部署时把 `video-service/` 设为构建目录，使用其中的 Dockerfile，并在部署控制台填写上述环境变量。容器平台的端口变量通常会自动注入；本服务会读取 `PORT`。
+服务没有第三方运行时依赖，但项目数据层使用 Node 内置 SQLite，因此需要 **Node 22.13+**。任意支持 Docker 或 Node 22 的服务都可部署。部署时把 `video-service/` 设为构建目录，使用其中的 Dockerfile，并在部署控制台填写上述环境变量。容器平台的端口变量通常会自动注入；本服务会读取 `PORT`。
+
+服务容器内的默认数据库路径为 `/data/yingjie.db`。部署平台必须把 `/data` 绑定到持久化 Volume（或把 `DATABASE_PATH` 指向平台已挂载的数据盘），否则重启或重新发布容器会导致项目、角色、分镜、制作日志和视频任务记录丢失。
 
 以任意容器平台为例，发布配置应为：
 
@@ -68,13 +71,14 @@ curl http://localhost:8787/healthz
 | 健康检查 | `GET /healthz` |
 | 公开端口 | 平台注入的 `PORT`（本地默认 `8787`） |
 | 私密变量 | `ARK_API_KEY`、`ARK_VIDEO_ENDPOINT_ID` |
-| 普通变量 | `CORS_ORIGINS`、`JOB_LIMIT_MAX`、`JOB_LIMIT_WINDOW_SECONDS`、`TRUST_PROXY` |
+| 普通变量 | `CORS_ORIGINS`、`DATABASE_PATH`、`JOB_LIMIT_MAX`、`JOB_LIMIT_WINDOW_SECONDS`、`TRUST_PROXY` |
+| 持久化卷 | 挂载到 `/data` |
 
 Docker 本地验证：
 
 ```bash
 docker build -t yingjie-video-service ./video-service
-docker run --rm --env-file video-service/.env -p 8787:8787 yingjie-video-service
+docker run --rm --env-file video-service/.env -v "$(pwd)/video-service-data:/data" -p 8787:8787 yingjie-video-service
 curl http://localhost:8787/healthz
 ```
 
@@ -88,11 +92,13 @@ curl https://your-video-gateway.example.com/healthz
 
 ```js
 window.YINGJIE_CONFIG = {
-  videoApiBaseUrl: "https://your-video-gateway.example.com"
+  studioApiBaseUrl: "https://your-video-gateway.example.com",
+  videoApiBaseUrl: "https://your-video-gateway.example.com",
+  projectId: "yesterday-signal-ep01"
 };
 ```
 
-随后推送 `runtime-config.js` 到 GitHub Pages。前端会显示“视频网关已配置”；“使用 Seedance 生成”会创建单镜头任务、每 5 秒轮询任务状态，成功后展示返回的视频链接。若仍显示连接失败，依次检查：网页地址是否列在 `CORS_ORIGINS`、网关是否为 HTTPS、`/healthz` 是否返回 `configured: true`。
+随后推送 `runtime-config.js` 到 GitHub Pages。前端启动时会读取项目快照，所有 Brief、角色、分镜、制作日志和审片状态的编辑都会自动保存；“使用 Seedance 生成”会创建单镜头任务并记录到对应项目。若仍显示连接失败，依次检查：网页地址是否列在 `CORS_ORIGINS`、网关是否为 HTTPS、`/healthz` 是否返回 `configured: true`。
 
 ## 接口合同
 

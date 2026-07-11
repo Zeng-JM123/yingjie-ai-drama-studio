@@ -8,7 +8,13 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Noto+Serif+SC:wght@500;600;700;900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./styles.css?v=20260712" />
+    <link rel="stylesheet" href="./layout-recovery.css?v=20260712" />
+    <style>
+      .cast-thumb.generated { background: radial-gradient(circle at 50% 34%, #f5d1b1 0 19%, transparent 20%), linear-gradient(145deg, #483a58 0 45%, #746695 46% 56%, #282b40 57%); }
+      .draft-character .portrait-stage img { opacity: .32; filter: grayscale(1) blur(1px); }
+      .draft-character .portrait-stage::before { position: absolute; z-index: 3; top: 50%; left: 50%; width: 168px; content: "AI 预览草案 · 待生成三视图"; color: #fff; text-align: center; text-shadow: 0 1px 4px #000; transform: translate(-50%, -50%); font: 500 10px "DM Mono", monospace; letter-spacing: .05em; }
+    </style>
   </head>
   <body>
     <div class="app-shell">
@@ -104,7 +110,7 @@
             <article class="world-card card" id="worldCard">
               <div class="card-head"><div><span class="section-kicker">世界观锁定</span><h2>视觉规则</h2></div><span class="world-badge">R01</span></div>
               <div class="world-scene"><span>上海 · 2047</span><i>FM 97.4</i><b>雨不是背景，<br />它是倒计时。</b></div>
-              <dl><div><dt>时间</dt><dd>永夜暴雨 · 23:00—00:00</dd></div><div><dt>色彩</dt><dd><i class="swatch blue-swatch"></i><i class="swatch plum-swatch"></i><i class="swatch amber-swatch"></i> 午夜蓝 / 雾紫 / 琥珀</dd></div><div><dt>禁用</dt><dd>日光、暖白大面积、赛博文字墙</dd></div></dl>
+              <dl><div><dt>时间</dt><dd id="worldTime">永夜暴雨 · 23:00—00:00</dd></div><div><dt>色彩</dt><dd id="worldPalette"><i class="swatch blue-swatch"></i><i class="swatch plum-swatch"></i><i class="swatch amber-swatch"></i> 午夜蓝 / 雾紫 / 琥珀</dd></div><div><dt>禁用</dt><dd id="worldConstraints">日光、暖白大面积、赛博文字墙</dd></div></dl>
               <button class="text-button" id="editWorld">编辑世界规则 ↗</button>
             </article>
           </div>
@@ -140,9 +146,9 @@
           <div class="section-title"><div><span class="section-number">04</span><div><h2>样片与审片</h2><p>DAILIES REVIEW · CUT, SOUND &amp; NOTES</p></div></div><div class="review-members"><span>林</span><span>许</span><span>陈</span><button id="inviteReviewer">+ 审片人</button></div></div>
           <div class="dailies-layout">
             <article class="dailies-player card">
-              <div class="player-stage"><div class="player-scene"><span>FM 97.4</span><div class="player-person"></div><div class="player-rain"></div></div><div class="player-top"><b>ROUGH CUT v03</b><span id="playerTime">00:18 / 02:47</span></div><p class="subtitle" id="subtitle">“如果你听见这段话，说明雨已经开始下了。”</p><button class="player-button" id="playerButton">▶</button></div>
+              <div class="player-stage" id="playerStage"><video id="previewVideo" playsinline preload="metadata" aria-label="已生成的样片视频"></video><div class="player-scene" id="playerAnimatic"><span>FM 97.4</span><div class="player-person"></div><div class="player-rain"></div></div><div class="player-top"><b id="previewKind">动态分镜预演</b><span id="playerTime">00:18 / 02:47</span></div><p class="subtitle" id="subtitle">“如果你听见这段话，说明雨已经开始下了。”</p><button class="player-button" id="playerButton" aria-label="播放动态分镜预演">▶</button></div>
               <div class="cut-timeline" id="cutTimeline"><span class="playhead"></span><i class="cut-a"></i><i class="cut-b"></i><i class="cut-c"></i><i class="cut-d"></i><i class="cut-e"></i></div>
-              <div class="player-footer"><div><b>样片 v03</b><small>24 fps · 1080 × 1920 · 原声未混</small></div><button class="text-button" id="openFullPreview">全屏审阅 ↗</button></div>
+              <div class="player-footer"><div><b>样片 v03</b><small id="previewStatus">动态分镜预演 · 可直接播放；接入 Seedance 后将自动替换为成片</small></div><button class="text-button" id="openFullPreview">全屏审阅 ↗</button></div>
             </article>
             <article class="review-panel card">
               <div class="card-head"><div><span class="section-kicker">AI 审片清单</span><h2>可交付前必须确认</h2></div><span class="review-score">92</span></div>
@@ -167,7 +173,7 @@
     <div class="modal-backdrop" id="modalBackdrop" aria-hidden="true">
       <section class="preview-modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
         <button class="modal-close" id="modalClose" aria-label="关闭">×</button>
-        <div class="modal-film"><div class="modal-film-scene"><span>FM 97.4</span><div></div></div><p>“有人在未来，等着你接听。”</p><button id="modalPlay">▶</button></div>
+        <div class="modal-film" id="modalFilm"><video id="modalVideo" playsinline preload="metadata" aria-label="全屏样片视频"></video><div class="modal-film-scene" id="modalAnimatic"><span>FM 97.4</span><div></div></div><p>“有人在未来，等着你接听。”</p><button id="modalPlay" aria-label="播放全屏样片">▶</button></div>
         <div class="modal-copy"><div><span class="section-kicker">ROUGH CUT · v03</span><h2 id="modalTitle">《昨日信号》· EP01</h2><p>基于已锁定的角色预览、镜头参数和声音设定生成的审片样片。</p></div><button class="generate-button compact" id="modalExport">导出审片包 ↗</button></div>
       </section>
     </div>
@@ -178,6 +184,15 @@
         <span class="section-kicker">NEW CHARACTER BLUEPRINT</span><h2 id="newCharacterTitle">构造可预览的人物</h2><p>角色资料会自动成为图像、分镜、动作与配音的统一约束。</p>
         <label>角色名称<input id="newCharacterName" placeholder="例如：周野" /></label><label>一句话身份<input id="newCharacterRole" placeholder="例如：雨夜出租车司机，目击过失踪案" /></label><label>视觉记忆点<input id="newCharacterAnchor" placeholder="例如：旧银戒、褪色夹克、右眉小疤" /></label>
         <div class="modal-actions"><button class="outline-button" data-close-character>取消</button><button class="generate-button" id="createCharacter"><span>✦</span> 创建角色卡</button></div>
+      </section>
+    </div>
+
+    <div class="modal-backdrop" id="worldModal" aria-hidden="true">
+      <section class="character-modal" role="dialog" aria-modal="true" aria-labelledby="worldModalTitle">
+        <button class="modal-close" data-close-world aria-label="关闭">×</button>
+        <span class="section-kicker">WORLD RULES · VERSIONED</span><h2 id="worldModalTitle">编辑世界规则</h2><p>这些规则会同步到后续未锁定的镜头提示词，不会改写已验收的素材。</p>
+        <label>时间与天气<input id="worldTimeInput" /></label><label>色彩与光线<input id="worldPaletteInput" /></label><label>禁用元素<input id="worldConstraintsInput" /></label>
+        <div class="modal-actions"><button class="outline-button" data-close-world>取消</button><button class="generate-button" id="saveWorld"><span>✓</span> 保存世界规则</button></div>
       </section>
     </div>
 

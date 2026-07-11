@@ -1,14 +1,19 @@
 import { createServer } from "node:http";
+import { resolve } from "node:path";
+import { createProjectStore } from "./store.mjs";
 
 const port = Number(process.env.PORT || 8787);
 const arkBaseUrl = "https://ark.cn-beijing.volces.com/api/v3";
 const maxRequestBytes = 32_000;
+const maxProjectRequestBytes = 1_000_000;
+const databasePath = resolve(process.env.DATABASE_PATH || "./data/yingjie.db");
+const projectStore = createProjectStore(databasePath);
 const jobLimitWindowMs = positiveInteger(process.env.JOB_LIMIT_WINDOW_SECONDS, 300) * 1_000;
 const jobLimitMax = positiveInteger(process.env.JOB_LIMIT_MAX, 3);
 const trustProxy = process.env.TRUST_PROXY === "true";
 const jobSlots = new Map();
 const allowedOrigins = new Set(
-  (process.env.CORS_ORIGINS || "https://zeng-jm123.github.io,http://localhost:4173,http://127.0.0.1:4173")
+  (process.env.CORS_ORIGINS || "https://zeng-jm123.github.io,http://localhost:4173,http://127.0.0.1:4173,http://localhost:8000,http://127.0.0.1:8000")
     .split(",").map(origin => origin.trim()).filter(Boolean)
 );
 const supportedRatios = new Set(["9:16", "16:9", "1:1", "3:4", "4:3", "21:9", "adaptive"]);
@@ -29,7 +34,7 @@ function respond(response, status, body, origin, extraHeaders = {}) {
   const headers = { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "Vary": "Origin", ...extraHeaders };
   if (origin && allowedOrigins.has(origin)) {
     headers["Access-Control-Allow-Origin"] = origin;
-    headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS";
+    headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, OPTIONS";
     headers["Access-Control-Allow-Headers"] = "Content-Type";
   }
   response.writeHead(status, headers);
@@ -40,14 +45,14 @@ function configured() {
   return Boolean(process.env.ARK_API_KEY && process.env.ARK_VIDEO_ENDPOINT_ID);
 }
 
-async function readJson(request) {
+async function readJson(request, maxBytes = maxRequestBytes) {
   const contentLength = Number(request.headers["content-length"] || 0);
-  if (Number.isFinite(contentLength) && contentLength > maxRequestBytes) throw httpError("Request body is too large.", 413);
+  if (Number.isFinite(contentLength) && contentLength > maxBytes) throw httpError("Request body is too large.", 413);
   let raw = "";
   let size = 0;
   for await (const chunk of request) {
     size += chunk.length;
-    if (size > maxRequestBytes) throw httpError("Request body is too large.", 413);
+    if (size > maxBytes) throw httpError("Request body is too large.", 413);
     raw += chunk;
   }
   try {
@@ -149,6 +154,13 @@ function buildVideoJobRequest(input) {
   return requestBody;
 }
 
+function projectScope(input) {
+  if (input.projectId === undefined && input.shotId === undefined) return { projectId: null, shotId: null };
+  if (typeof input.projectId !== "string" || !/^[A-Za-z0-9_-]{1,80}$/.test(input.projectId)) throw httpError("projectId must be a valid project identifier.");
+  if (input.shotId !== undefined && (typeof input.shotId !== "string" || !/^[A-Za-z0-9_-]{1,80}$/.test(input.shotId))) throw httpError("shotId must be a valid shot identifier.");
+  return { projectId: input.projectId, shotId: input.shotId || null };
+}
+
 async function createVideoJob(requestBody) {
   return normalizeTask(await arkRequest("/contents/generations/tasks", { method: "POST", body: JSON.stringify(requestBody) }));
 }
@@ -158,18 +170,34 @@ const server = createServer(async (request, response) => {
   if (request.method === "OPTIONS") return respond(response, 204, {}, origin);
   if (origin && !allowedOrigins.has(origin)) return respond(response, 403, { error: "Origin is not allowed." }, origin);
   const url = new URL(request.url, `http://${request.headers.host}`);
-  if (request.method === "GET" && url.pathname === "/healthz") return respond(response, 200, { ok: true, provider: "Seedance", configured: configured() }, origin);
-  if (!configured()) return respond(response, 503, { error: "Video service is not configured. Set ARK_API_KEY and ARK_VIDEO_ENDPOINT_ID." }, origin);
+  if (request.method === "GET" && url.pathname === "/healthz") return respond(response, 200, { ok: true, provider: "Seedance", configured: configured(), database: "sqlite" }, origin);
   try {
+    const studioMatch = url.pathname.match(/^\/v1\/projects\/([A-Za-z0-9_-]{1,80})\/studio$/);
+    const jobsMatch = url.pathname.match(/^\/v1\/projects\/([A-Za-z0-9_-]{1,80})\/video-jobs$/);
+    if (request.method === "GET" && studioMatch) return respond(response, 200, projectStore.ensureSeed(studioMatch[1]), origin);
+    if (request.method === "PUT" && studioMatch) {
+      const input = await readJson(request, maxProjectRequestBytes);
+      return respond(response, 200, projectStore.writeStudio(studioMatch[1], input), origin);
+    }
+    if (request.method === "GET" && jobsMatch) return respond(response, 200, { jobs: projectStore.listVideoJobs(jobsMatch[1]) }, origin);
+
+    if (!configured()) return respond(response, 503, { error: "Video service is not configured. Set ARK_API_KEY and ARK_VIDEO_ENDPOINT_ID." }, origin);
     if (request.method === "POST" && url.pathname === "/v1/video-jobs") {
       const input = await readJson(request);
       const requestBody = buildVideoJobRequest(input);
+      const scope = projectScope(input);
       const retryAfter = takeJobSlot(request);
       if (retryAfter) return respond(response, 429, { error: "Too many video jobs. Please try again later." }, origin, { "Retry-After": String(retryAfter) });
-      return respond(response, 202, await createVideoJob(requestBody), origin);
+      const task = await createVideoJob(requestBody);
+      if (scope.projectId) projectStore.recordVideoJob({ ...scope, providerTaskId: task.id, input, task });
+      return respond(response, 202, task, origin);
     }
     const taskMatch = url.pathname.match(/^\/v1\/video-jobs\/(cgt-[A-Za-z0-9-]+)$/);
-    if (request.method === "GET" && taskMatch) return respond(response, 200, normalizeTask(await arkRequest(`/contents/generations/tasks/${taskMatch[1]}`)), origin);
+    if (request.method === "GET" && taskMatch) {
+      const task = normalizeTask(await arkRequest(`/contents/generations/tasks/${taskMatch[1]}`));
+      projectStore.updateVideoJob(taskMatch[1], task);
+      return respond(response, 200, task, origin);
+    }
     return respond(response, 404, { error: "Not found." }, origin);
   } catch (error) {
     const status = error.status && error.status < 500 ? error.status : 502;
