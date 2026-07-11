@@ -70,6 +70,16 @@ function setText(selector, value, root = document) {
   return node;
 }
 
+// Kept for compatibility with deployments that render the legacy gateway badge.
+// The current studio can run without this optional element.
+function setGatewayStatus(message, state = '') {
+  const status = $('#videoGatewayStatus');
+  if (!status) return false;
+  status.textContent = message;
+  status.className = `gateway-status show${state ? ` ${state}` : ''}`;
+  return true;
+}
+
 function setSaveState(state = 'saving') {
   const label = $('#saveState');
   const states = {
@@ -158,6 +168,18 @@ function readLocalProject() {
   }
 }
 
+function restoreLocalProject() {
+  const localProject = readLocalProject();
+  if (!localProject) return false;
+  try {
+    applyStudio(localProject);
+    return true;
+  } catch {
+    window.localStorage.removeItem(localStudioStorageKey);
+    return false;
+  }
+}
+
 function scheduleProjectSave(delay = 350) {
   setSaveState('saving');
   clearTimeout(saveTimer);
@@ -188,10 +210,11 @@ async function saveProject() {
     persistenceErrorShown = false;
     setSaveState('saved');
   } catch (error) {
-    setSaveState('offline');
+    const savedLocally = saveProjectLocally();
+    setGatewayStatus(savedLocally ? '服务端暂不可用，修改已保存在本机。' : '服务端暂不可用，修改未同步。', savedLocally ? 'local' : 'error');
     if (!persistenceErrorShown) {
       persistenceErrorShown = true;
-      notify(error.message || '服务端暂时不可用，修改尚未同步。');
+      notify(error.message || (savedLocally ? '服务端暂时不可用，修改已保存到本机。' : '服务端暂时不可用，修改尚未同步。'));
     }
   } finally {
     saveInFlight = false;
@@ -433,24 +456,26 @@ function applyStudio(studio) {
 
 async function loadProject() {
   if (!studioGateway) {
-    const localProject = readLocalProject();
-    if (localProject) {
-      try { applyStudio(localProject); }
-      catch { window.localStorage.removeItem(localStudioStorageKey); }
-    }
+    const restored = restoreLocalProject();
     hydratePreviewState();
+    setGatewayStatus(restored ? '未配置服务端，已恢复本机项目。' : '未配置服务端，当前使用离线项目。', 'local');
     return setSaveState('local');
   }
   setSaveState('saving');
+  setGatewayStatus('正在连接项目服务…', 'loading');
   try {
     const response = await fetch(`${studioGateway}/v1/projects/${studioProjectId}/studio`);
     const studio = await response.json();
     if (!response.ok) throw new Error(studio.error || '项目读取失败');
     applyStudio(studio);
     setSaveState('saved');
+    setGatewayStatus('项目服务已连接，数据同步正常。', 'ready');
   } catch (error) {
-    setSaveState('offline');
-    notify(error.message || '未能读取服务端项目，当前显示离线预览数据。');
+    const restored = restoreLocalProject();
+    hydratePreviewState();
+    setSaveState(restored ? 'local' : 'offline');
+    setGatewayStatus(restored ? '项目服务不可用，已恢复本机备份。' : '项目服务不可用，当前显示离线预览。', restored ? 'local' : 'error');
+    notify(error.message || (restored ? '未能读取服务端项目，已恢复本机备份。' : '未能读取服务端项目，当前显示离线预览数据。'));
   }
 }
 
@@ -845,10 +870,17 @@ function setAnimaticPreview(shot) {
 }
 
 async function requestVideoGateway(path, options = {}) {
-  const response = await fetch(`${videoGateway}${path}`, { ...options, signal: AbortSignal.timeout(35_000) });
-  const task = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(task.error || `视频服务请求失败（HTTP ${response.status}）`);
-  return task;
+  if (!videoGateway) throw new Error('视频服务尚未配置');
+  try {
+    const response = await fetch(`${videoGateway}${path}`, { ...options, signal: AbortSignal.timeout(35_000) });
+    const task = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(task.error || `视频服务请求失败（HTTP ${response.status}）`);
+    return task;
+  } catch (error) {
+    if (error.name === 'TimeoutError') throw new Error('视频服务响应超时，已保留动态分镜预览。');
+    if (error instanceof TypeError) throw new Error('无法连接视频服务，已保留动态分镜预览。');
+    throw error;
+  }
 }
 
 async function pollSeedancePreview(taskId, attempts = 0) {
