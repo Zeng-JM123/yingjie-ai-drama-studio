@@ -1,0 +1,21 @@
+index.html
+  s_0b3e9d385ea040::t_61b1f07172091d 29-34,40,48,58,62,67-105,119,132,162-163,187-217,219,224,227-229,236-237
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "c5ea3b10bb74bbfd745443556d917d6b7706dab3",
+  "prompts": {},
+  "sessions": {
+    "s_0b3e9d385ea040": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f5280-0532-7e22-a37f-b8a9bb961054",
+        "model": "unknown"
+      },
+      "human_author": "zengjiaming <zengjiaming.alex@bytedance.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
