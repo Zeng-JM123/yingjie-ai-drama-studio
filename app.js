@@ -57,10 +57,17 @@ let activities = [
 ];
 
 function notify(message) {
-  $('#toastText').textContent = message;
-  toast.classList.add('show');
+  setText('#toastText', message);
+  toast?.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toast.classList.remove('show'), 3600);
+  toastTimer = setTimeout(() => toast?.classList.remove('show'), 3600);
+}
+
+function setText(selector, value, root = document) {
+  const node = typeof selector === 'string' ? $(selector, root) : selector;
+  if (!node) return null;
+  node.textContent = value;
+  return node;
 }
 
 function setSaveState(state = 'saving') {
@@ -73,6 +80,7 @@ function setSaveState(state = 'saving') {
     conflict: ['● 发现更新冲突', '#a46e51']
   };
   const [text, color] = states[state] || states.saved;
+  if (!label) return;
   label.textContent = text;
   label.style.color = color;
 }
@@ -193,23 +201,23 @@ async function saveProject() {
 
 function updateShotCount() {
   const amount = $$('.shot-card').length;
-  $('#shotNavCount').textContent = String(amount).padStart(2, '0');
-  $('.sequence-tabs button.active b').textContent = `${String(amount).padStart(2, '0')} 镜`;
+  setText('#shotNavCount', String(amount).padStart(2, '0'));
+  setText('.sequence-tabs button.active b', `${String(amount).padStart(2, '0')} 镜`);
 }
 
 function populateShotEditor(shot) {
-  $('#selectedShotId').textContent = shot.id;
-  $('#selectedShotTitle').textContent = shot.title;
-  $('#previewShotNum').textContent = shot.id;
-  $('#previewCaption').textContent = shot.caption;
-  $('#shotPrompt').textContent = shot.prompt;
-  $('#shotSize').value = shot.size;
-  $('#shotMovement').value = shot.movement;
-  $('#shotDuration').value = shot.duration;
-  $('#shotEmotion').value = shot.emotion;
-  $('#shotNote').value = shot.note;
+  setText('#selectedShotId', shot.id);
+  setText('#selectedShotTitle', shot.title);
+  setText('#previewShotNum', shot.id);
+  setText('#previewCaption', shot.caption);
+  setText('#shotPrompt', shot.prompt);
+  ['shotSize', 'shotMovement', 'shotDuration', 'shotEmotion', 'shotNote'].forEach((id, index) => {
+    const value = [shot.size, shot.movement, shot.duration, shot.emotion, shot.note][index];
+    const field = $(`#${id}`);
+    if (field) field.value = value;
+  });
   const preview = $('#editorPreview');
-  preview.className = `editor-preview ${shot.cls}`;
+  if (preview) preview.className = `editor-preview ${shot.cls}`;
 }
 
 function selectShot(id) {
@@ -218,9 +226,12 @@ function selectShot(id) {
   selectedShot = String(id);
   $$('.shot-card').forEach(card => card.classList.toggle('selected', card.dataset.shot === selectedShot));
   populateShotEditor(shot);
-  $('#editorStatus').textContent = String(id) === '4' ? '待确认时间连续性' : '已锁定角色锚点';
-  $('#editorStatus').style.background = String(id) === '4' ? '#fff0e5' : '#eef8ed';
-  $('#editorStatus').style.color = String(id) === '4' ? '#a46e51' : '#5c986d';
+  const status = $('#editorStatus');
+  if (status) {
+    status.textContent = String(id) === '4' ? '待确认时间连续性' : '已锁定角色锚点';
+    status.style.background = String(id) === '4' ? '#fff0e5' : '#eef8ed';
+    status.style.color = String(id) === '4' ? '#a46e51' : '#5c986d';
+  }
 }
 
 function syncShotFromFields() {
@@ -232,8 +243,8 @@ function syncShotFromFields() {
   shot.note = $('#shotNote').value;
   const card = $(`.shot-card[data-shot="${selectedShot}"]`);
   if (card) {
-    $('small', card).textContent = `${shot.size.replace(/ .*/, '')} · ${shot.movement}`;
-    $('em', card).textContent = `${shot.duration}s`;
+    setText('small', `${shot.size.replace(/ .*/, '')} · ${shot.movement}`, card);
+    setText('em', `${shot.duration}s`, card);
   }
   scheduleProjectSave();
 }
@@ -243,19 +254,18 @@ function selectCharacter(id, silent = false) {
   if (!character) return;
   selectedCharacter = id;
   $$('.cast-card[data-character]').forEach(card => card.classList.toggle('selected', card.dataset.character === id));
-  $('#characterCode').textContent = character.code;
+  setText('#characterCode', character.code);
   const characterName = $('#characterName');
   const englishName = document.createElement('small');
   englishName.textContent = character.en;
-  characterName.replaceChildren(document.createTextNode(`${character.name} `), englishName);
-  $('#characterRole').textContent = character.role;
-  $('#characterTone').textContent = character.tone;
-  $('#characterVoice').textContent = character.voice;
-  $('#characterAnchor').textContent = character.anchor;
+  characterName?.replaceChildren(document.createTextNode(`${character.name} `), englishName);
+  setText('#characterRole', character.role);
+  setText('#characterTone', character.tone);
+  setText('#characterVoice', character.voice);
+  setText('#characterAnchor', character.anchor);
   const image = $('#characterImage');
-  image.src = character.image;
-  image.alt = character.alt;
-  $('#characterStudio').classList.toggle('draft-character', Boolean(character.draft));
+  if (image) { image.src = character.image; image.alt = character.alt; }
+  $('#characterStudio')?.classList.toggle('draft-character', Boolean(character.draft));
   $$('#lookChips button').forEach(button => button.classList.toggle('active', button.dataset.look === character.look));
   if (!silent) {
     scheduleProjectSave();
@@ -361,14 +371,19 @@ function renderBeat(act) {
 
 function renderPersistedProductionState() {
   renderWorldRules(projectMetadata.worldRules);
-  if (projectMetadata.healthScore) $('#healthScore').textContent = String(projectMetadata.healthScore);
+  if (projectMetadata.healthScore) setText('#healthScore', String(projectMetadata.healthScore));
   if (projectMetadata.timeContinuityLocked) {
     $('#applyFix').innerHTML = '✓ 已锁定为「午夜暴雨」<span>→</span>';
     $('#applyFix').style.color = '#4e8660';
     $('#applyFix').style.background = '#f0f8ee';
   }
   if (projectMetadata.reviewPassed) {
-    $$('.review-item.pending').forEach(item => { item.classList.remove('pending'); item.classList.add('passed'); $('span', item).textContent = '✓'; $('em', item).textContent = '已修复'; });
+    $$('.review-item.pending').forEach(item => {
+      item.classList.remove('pending');
+      item.classList.add('passed');
+      setText('span', '✓', item);
+      setText('em', '已修复', item);
+    });
     $('.review-summary').innerHTML = '<b>通过 9 / 9</b><span>高风险 0 · 需确认 0</span>';
     $('#reviewFix').innerHTML = '✓ 已修复所有低风险问题 <span>→</span>';
     $('#reviewFix').style.color = '#4e8660';
@@ -379,13 +394,14 @@ function renderPersistedProductionState() {
 
 function renderWorldRules(rules) {
   if (!rules) return;
-  if (rules.time) $('#worldTime').textContent = rules.time;
+  if (rules.time) setText('#worldTime', rules.time);
   if (rules.palette) {
     const palette = $('#worldPalette');
+    if (!palette) return;
     const swatches = [...palette.querySelectorAll('i')];
     palette.replaceChildren(...swatches, document.createTextNode(` ${rules.palette}`));
   }
-  if (rules.constraints) $('#worldConstraints').textContent = rules.constraints;
+  if (rules.constraints) setText('#worldConstraints', rules.constraints);
 }
 
 function applyStudio(studio) {
@@ -439,10 +455,12 @@ async function loadProject() {
 }
 
 function openModal(modal) {
+  if (!modal) return;
   modal.classList.add('open');
   modal.setAttribute('aria-hidden', 'false');
 }
 function closeModal(modal) {
+  if (!modal) return;
   modal.classList.remove('open');
   modal.setAttribute('aria-hidden', 'true');
 }
@@ -501,7 +519,7 @@ function runPipeline() {
       button.disabled = false;
       button.innerHTML = '<span>✦</span> AI 拆解并更新制作链 <kbd>⌘ ↵</kbd>';
       isRunning = false;
-      $('#healthScore').textContent = '94';
+      setText('#healthScore', '94');
       projectMetadata.healthScore = 94;
       scheduleProjectSave();
       notify('制作链已更新：角色、分镜与审片清单保持同步');
@@ -532,7 +550,7 @@ $('#clearFeed').addEventListener('click', () => {
   notify('AI 制作日志已从项目记录中清空。');
 });
 $('#applyFix').addEventListener('click', () => {
-  $('#healthScore').textContent = '94';
+  setText('#healthScore', '94');
   $('#applyFix').innerHTML = '✓ 已锁定为「午夜暴雨」<span>→</span>';
   $('#applyFix').style.color = '#4e8660';
   $('#applyFix').style.background = '#f0f8ee';
@@ -579,18 +597,22 @@ $('#generateCharacter').addEventListener('click', event => {
 });
 function openWorldModal() {
   const rules = projectMetadata.worldRules || {};
-  $('#worldTimeInput').value = rules.time || $('#worldTime').textContent.trim();
-  $('#worldPaletteInput').value = rules.palette || $('#worldPalette').textContent.trim();
-  $('#worldConstraintsInput').value = rules.constraints || $('#worldConstraints').textContent.trim();
+  const timeInput = $('#worldTimeInput');
+  const paletteInput = $('#worldPaletteInput');
+  const constraintsInput = $('#worldConstraintsInput');
+  if (!timeInput || !paletteInput || !constraintsInput) return notify('当前页面尚未加载世界规则编辑器，请刷新页面后重试。');
+  timeInput.value = rules.time || $('#worldTime')?.textContent?.trim() || '';
+  paletteInput.value = rules.palette || $('#worldPalette')?.textContent?.trim() || '';
+  constraintsInput.value = rules.constraints || $('#worldConstraints')?.textContent?.trim() || '';
   openModal($('#worldModal'));
-  $('#worldTimeInput').focus();
+  timeInput.focus();
 }
 function closeWorldModal() { closeModal($('#worldModal')); }
 $('#worldToggle').addEventListener('click', openWorldModal);
 $('#editWorld').addEventListener('click', openWorldModal);
 $$('[data-close-world]').forEach(button => button.addEventListener('click', closeWorldModal));
-$('#worldModal').addEventListener('click', event => { if (event.target === $('#worldModal')) closeWorldModal(); });
-$('#saveWorld').addEventListener('click', () => {
+$('#worldModal')?.addEventListener('click', event => { if (event.target === $('#worldModal')) closeWorldModal(); });
+$('#saveWorld')?.addEventListener('click', () => {
   const rules = { time: $('#worldTimeInput').value.trim(), palette: $('#worldPaletteInput').value.trim(), constraints: $('#worldConstraintsInput').value.trim() };
   if (!rules.time || !rules.palette || !rules.constraints) return notify('请补全时间、色彩和禁用元素后再保存。');
   projectMetadata.worldRules = rules;
@@ -605,7 +627,7 @@ function openCharacterModal(mode = 'create') {
   characterModalMode = mode;
   const isEditing = mode === 'edit';
   const character = characters[selectedCharacter];
-  $('#newCharacterTitle').textContent = isEditing ? `编辑「${character.name}」角色卡` : '构造可预览的人物';
+  setText('#newCharacterTitle', isEditing ? `编辑「${character.name}」角色卡` : '构造可预览的人物');
   $('#createCharacter').innerHTML = isEditing ? '<span>✓</span> 保存角色卡' : '<span>✦</span> 创建角色卡';
   $('#newCharacterName').value = isEditing ? character.name : '';
   $('#newCharacterRole').value = isEditing ? character.role : '';
@@ -711,7 +733,7 @@ function nearestSeedanceDuration(value) {
 
 function previewDuration() {
   const video = $('#previewVideo');
-  if (previewVideoUrl && Number.isFinite(video.duration) && video.duration > 0) return video.duration;
+  if (previewVideoUrl && video && Number.isFinite(video.duration) && video.duration > 0) return video.duration;
   return Number(projectMetadata.preview?.duration) || (previewVideoUrl ? 5 : 167);
 }
 
@@ -723,15 +745,17 @@ function formatPlayerTime(total, duration = previewDuration()) {
 function updatePlayerPosition(seconds = playerSeconds) {
   const duration = previewDuration();
   playerSeconds = Math.max(0, Math.min(seconds, duration));
-  $('#playerTime').textContent = formatPlayerTime(playerSeconds, duration);
-  $('.playhead').style.left = `${Math.max(2, Math.min(98, playerSeconds / duration * 100))}%`;
+  setText('#playerTime', formatPlayerTime(playerSeconds, duration));
+  const playhead = $('.playhead');
+  if (playhead) playhead.style.left = `${Math.max(2, Math.min(98, playerSeconds / duration * 100))}%`;
 }
 
 function setPlaybackState(playing) {
-  $('#playerStage').classList.toggle('is-playing', playing);
-  $('#modalFilm').classList.toggle('is-playing', playing);
+  $('#playerStage')?.classList.toggle('is-playing', playing);
+  $('#modalFilm')?.classList.toggle('is-playing', playing);
   ['#playerButton', '#modalPlay'].forEach(selector => {
     const button = $(selector);
+    if (!button) return;
     button.dataset.playing = String(playing);
     button.textContent = playing ? 'Ⅱ' : '▶';
     button.setAttribute('aria-label', playing ? '暂停样片预览' : '播放样片预览');
@@ -740,7 +764,7 @@ function setPlaybackState(playing) {
 
 function stopPlayback() {
   clearInterval(playerTimer);
-  ['#previewVideo', '#modalVideo'].forEach(selector => $(selector).pause());
+  ['#previewVideo', '#modalVideo'].forEach(selector => $(selector)?.pause());
   setPlaybackState(false);
 }
 
@@ -794,14 +818,15 @@ function renderPreviewState() {
   const hasVideo = Boolean(previewVideoUrl);
   const playerStage = $('#playerStage');
   const modalFilm = $('#modalFilm');
-  playerStage.classList.toggle('has-video', hasVideo);
-  modalFilm.classList.toggle('has-video', hasVideo);
-  $('#previewKind').textContent = hasVideo ? 'SEEDANCE 成片' : '动态分镜预演';
-  $('#previewStatus').textContent = preview.status || (hasVideo ? 'Seedance 成片已就绪 · 视频链接可能过期，请及时转存' : studioGateway ? '尚未生成视频 · 点击“生成镜头预览”提交 Seedance 任务' : '动态分镜预演 · 可直接播放；接入 Seedance 后将自动替换为成片');
+  playerStage?.classList.toggle('has-video', hasVideo);
+  modalFilm?.classList.toggle('has-video', hasVideo);
+  setText('#previewKind', hasVideo ? 'SEEDANCE 成片' : '动态分镜预演');
+  setText('#previewStatus', preview.status || (hasVideo ? 'Seedance 成片已就绪 · 视频链接可能过期，请及时转存' : studioGateway ? '尚未生成视频 · 点击“生成镜头预览”提交 Seedance 任务' : '动态分镜预演 · 可直接播放；接入 Seedance 后将自动替换为成片'));
   if (changed) {
     stopPlayback();
     ['#previewVideo', '#modalVideo'].forEach(selector => {
       const video = $(selector);
+      if (!video) return;
       video.removeAttribute('src');
       if (hasVideo) video.src = previewVideoUrl;
       video.load();
@@ -884,6 +909,7 @@ async function trySeedancePreview() {
 
 ['#previewVideo', '#modalVideo'].forEach(selector => {
   const video = $(selector);
+  if (!video) return;
   video.addEventListener('timeupdate', () => updatePlayerPosition(video.currentTime));
   video.addEventListener('ended', stopPlayback);
   video.addEventListener('loadedmetadata', () => updatePlayerPosition(0));
@@ -914,7 +940,12 @@ $('#generateShot').addEventListener('click', async event => {
 
 $('#playerButton').addEventListener('click', () => { void togglePlayer('player'); });
 $('#reviewFix').addEventListener('click', () => {
-  $$('.review-item.pending').forEach(item => { item.classList.remove('pending'); item.classList.add('passed'); $('span', item).textContent = '✓'; $('em', item).textContent = '已修复'; });
+  $$('.review-item.pending').forEach(item => {
+    item.classList.remove('pending');
+    item.classList.add('passed');
+    setText('span', '✓', item);
+    setText('em', '已修复', item);
+  });
   $('.review-summary').innerHTML = '<b>通过 9 / 9</b><span>高风险 0 · 需确认 0</span>';
   $('#reviewFix').innerHTML = '✓ 已修复所有低风险问题 <span>→</span>';
   $('#reviewFix').style.color = '#4e8660';
