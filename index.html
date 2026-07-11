@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#11131a" />
+    <title>映界 · AI 短剧工场</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Noto+Serif+SC:wght@500;600;700;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="noise"></div>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <a class="brand" href="#top" aria-label="映界首页">
+          <span class="brand-mark"><i></i><i></i><i></i></span>
+          <span>映界<em>YINGJIE</em></span>
+        </a>
+        <div class="workspace-switcher">
+          <span class="workspace-dot"></span>
+          <div><b>《昨日信号》</b><small>制作工作区 · v0.8</small></div>
+          <button aria-label="切换项目">⌄</button>
+        </div>
+
+        <nav class="main-nav" aria-label="制作链路">
+          <p>PRODUCTION PIPELINE</p>
+          <a class="nav-item active" data-target="script" href="#script"><span>01</span>剧本中枢 <b>⌘1</b></a>
+          <a class="nav-item" data-target="world" href="#world"><span>02</span>世界观设计 <b>⌘2</b></a>
+          <a class="nav-item" data-target="storyboard" href="#storyboard"><span>03</span>镜头叙事 <b>⌘3</b></a>
+          <a class="nav-item" data-target="factory" href="#factory"><span>04</span>生成工厂 <b>⌘4</b></a>
+          <a class="nav-item" data-target="delivery" href="#delivery"><span>05</span>交付中心 <b>⌘5</b></a>
+        </nav>
+
+        <div class="agent-summary">
+          <div class="agent-summary-title"><span class="pulse"></span> 6 个 Agent 在线</div>
+          <div class="mini-avatars"><span class="avatar amber">剧</span><span class="avatar lilac">美</span><span class="avatar blue">镜</span><span class="avatar pink">声</span><span class="avatar dark">+2</span></div>
+          <small>本次制作预计消耗 38 credits</small>
+        </div>
+        <div class="sidebar-bottom"><button class="help-button">? <span>制作指南</span></button><div class="user-avatar">C</div></div>
+      </aside>
+
+      <main id="top" class="content">
+        <header class="topbar">
+          <div class="breadcrumbs"><span>项目</span><i>/</i><span>都市悬疑</span><i>/</i><b>第 01 集</b></div>
+          <div class="top-actions"><button class="icon-button" aria-label="通知">◔<span class="notification-dot"></span></button><button class="preview-button" id="previewBtn"><span>▷</span> 预览成片</button><button class="publish-button" id="exportBtn">导出项目 <span>↗</span></button></div>
+        </header>
+
+        <section class="hero" id="script">
+          <div class="eyebrow"><span></span> AI NATIVE DRAMA STUDIO</div>
+          <div class="hero-heading"><div><h1>把一个念头，<br />变成一部短剧。</h1><p>多 Agent 协作，守住叙事、视觉与声音的一致性。</p></div><div class="episode-stamp"><span>EPISODE</span><b>01</b><small>07:42 · 竖屏短剧</small></div></div>
+
+          <div class="creation-brief">
+            <div class="brief-label"><span>✦</span><b>本集创作指令</b><small>BRIEF TO ORCHESTRATOR</small></div>
+            <textarea id="briefInput" aria-label="创作指令">暴雨将至的上海，失去记忆的电台主持人收到一段来自未来的语音。她必须在午夜前找到发信者，否则整座城市会陷入静默。</textarea>
+            <div class="brief-footer">
+              <div class="chips"><button class="chip active">都市悬疑</button><button class="chip">女性向</button><button class="chip">2–3 分钟</button><button class="chip">9:16 竖屏</button></div>
+              <button class="run-button" id="runPipeline"><span class="spark">✦</span> 启动制作链 <kbd>⌘ ↵</kbd></button>
+            </div>
+          </div>
+        </section>
+
+        <section class="orchestration" aria-label="Agent 编排面板">
+          <div class="section-title"><div><span class="section-number">01</span><h2>创作编排</h2><p>ORCHESTRATION LAYER</p></div><button class="text-button">查看执行图 <span>→</span></button></div>
+          <div class="agent-rail" id="agentRail">
+            <article class="agent-card completed" data-agent="剧本架构师"><div class="agent-card-head"><span class="avatar amber">剧</span><span class="agent-status">已完成</span></div><h3>剧本架构师</h3><p>Story Architect</p><div class="agent-metric"><b>12</b><span>场戏剧节点</span></div><button class="inspect-agent">查看产出 <span>→</span></button></article>
+            <span class="connector done"></span>
+            <article class="agent-card completed" data-agent="视觉设定师"><div class="agent-card-head"><span class="avatar lilac">美</span><span class="agent-status">已完成</span></div><h3>视觉设定师</h3><p>Visual Designer</p><div class="agent-metric"><b>8</b><span>角色与场景资产</span></div><button class="inspect-agent">查看产出 <span>→</span></button></article>
+            <span class="connector done"></span>
+            <article class="agent-card working" data-agent="镜头导演"><div class="agent-card-head"><span class="avatar blue">镜</span><span class="agent-status"><i></i>编排中</span></div><h3>镜头导演</h3><p>Shot Director</p><div class="agent-metric"><b id="shotMetric">24</b><span>个镜头已生成</span></div><button class="inspect-agent">查看分镜 <span>→</span></button></article>
+            <span class="connector"></span>
+            <article class="agent-card queued" data-agent="动画导演"><div class="agent-card-head"><span class="avatar mint">动</span><span class="agent-status">待命</span></div><h3>动画导演</h3><p>Motion Director</p><div class="agent-metric"><b>—</b><span>等待镜头锁定</span></div><button class="inspect-agent">设定动作 <span>→</span></button></article>
+            <span class="connector"></span>
+            <article class="agent-card queued" data-agent="声音总监"><div class="agent-card-head"><span class="avatar pink">声</span><span class="agent-status">待命</span></div><h3>声音总监</h3><p>Voice Director</p><div class="agent-metric"><b>—</b><span>等待台词锁定</span></div><button class="inspect-agent">选择声音 <span>→</span></button></article>
+          </div>
+        </section>
+
+        <section class="workspace-grid" id="world">
+          <div class="panel story-panel">
+            <div class="panel-title"><div><span class="section-number">02</span><h2>剧本脉搏</h2><p>SCRIPT BEATS · 3 ACTS</p></div><button class="dots" aria-label="更多操作">•••</button></div>
+            <div class="act-tabs" role="tablist"><button class="act-tab active" data-act="act1">第一幕 <b>铺陈</b></button><button class="act-tab" data-act="act2">第二幕 <b>迷局</b></button><button class="act-tab" data-act="act3">第三幕 <b>反转</b></button></div>
+            <div class="script-beat" id="scriptBeat"><span class="scene-code">SCENE 01 · INT. 电台直播间 · 深夜</span><h3>“有人在未来，等着你接听。”</h3><p>雨水顺着落地窗拉出银色的线。沈清言结束最后一档深夜节目，调音台忽然亮起一盏陌生的红灯。</p><div class="beat-meta"><span>△ 叙事张力 <i style="width:58%"></i></span><span>01:12–02:04</span></div></div>
+            <div class="beat-timeline"><button class="beat-point active" aria-label="第一节点"></button><span></span><button class="beat-point" aria-label="第二节点"></button><span></span><button class="beat-point" aria-label="第三节点"></button><span></span><button class="beat-point" aria-label="第四节点"></button><span></span><button class="beat-point" aria-label="第五节点"></button></div>
+            <button class="full-panel-link" id="scriptExpand">展开完整剧本 <span>↗</span></button>
+          </div>
+
+          <div class="panel asset-panel">
+            <div class="panel-title"><div><span class="section-number">03</span><h2>视觉圣经</h2><p>CHARACTER &amp; WORLD BIBLE</p></div><button class="dots" aria-label="更多操作">•••</button></div>
+            <div class="visual-canvas">
+              <div class="visual-sky"></div><div class="building building-one"></div><div class="building building-two"></div><div class="building building-three"></div><div class="rain"></div><div class="neon neon-a">FM 97.4</div><div class="neon neon-b">雨 夜</div><div class="silhouette"></div><div class="frame-corner tl"></div><div class="frame-corner tr"></div><div class="frame-corner bl"></div><div class="frame-corner br"></div>
+              <span class="canvas-label">世界观锚点 · 上海 2047</span><span class="canvas-index">01 / 08</span>
+            </div>
+            <div class="asset-cards"><button class="asset-card selected"><span class="asset-portrait qingyan"></span><div><b>沈清言</b><small>女主角 · 28 岁</small></div><i>✓</i></button><button class="asset-card"><span class="asset-portrait yuze"></span><div><b>陆予泽</b><small>神秘来信者</small></div></button></div>
+          </div>
+        </section>
+
+        <section class="storyboard-section" id="storyboard">
+          <div class="section-title"><div><span class="section-number">04</span><h2>镜头叙事</h2><p>STORYBOARD · SEQUENCE 01</p></div><div class="storyboard-actions"><button class="outline-button" id="regenerateShots">↻ 重新编排</button><button class="dark-button" id="addShot">+ 添加镜头</button></div></div>
+          <div class="shot-grid" id="shotGrid">
+            <article class="shot-card selected"><div class="shot-visual shot-one"><span>01</span><i>CU</i><div class="scan-line"></div></div><div class="shot-copy"><b>雨夜的频率</b><small>特写 · 缓慢推进 · 4.2s</small></div></article>
+            <article class="shot-card"><div class="shot-visual shot-two"><span>02</span><i>MS</i><div class="scan-line"></div></div><div class="shot-copy"><b>最后一位听众</b><small>中景 · 静止 · 5.0s</small></div></article>
+            <article class="shot-card"><div class="shot-visual shot-three"><span>03</span><i>ECU</i><div class="scan-line"></div></div><div class="shot-copy"><b>来自未来的声音</b><small>大特写 · 推近 · 3.4s</small></div></article>
+            <article class="shot-card"><div class="shot-visual shot-four"><span>04</span><i>WS</i><div class="scan-line"></div></div><div class="shot-copy"><b>城市静默之前</b><small>全景 · 横移 · 6.1s</small></div></article>
+          </div>
+          <div class="selected-shot-editor"><div class="editor-shot-preview shot-one"><span>01</span></div><div class="editor-fields"><p class="eyebrow small"><span></span> CURRENT SHOT</p><h3>雨夜的频率</h3><div class="field-row"><label>镜头语言 <select><option>特写 · 缓慢推进</option><option>中景 · 静止</option><option>全景 · 横移</option></select></label><label>时长 <input value="4.2 秒" /></label><label>情绪 <select><option>克制、悬疑</option><option>紧张、急促</option><option>温暖、脆弱</option></select></label></div></div><div class="shot-tools"><button id="splitShot">✂ 拆分</button><button id="deleteShot">⌫</button></div></div>
+        </section>
+
+        <section class="factory-section" id="factory">
+          <div class="section-title"><div><span class="section-number">05</span><h2>生成工厂</h2><p>RENDER QUEUE · CONSISTENCY LOCKED</p></div><div class="consistency"><span>✓</span> 角色一致性已锁定</div></div>
+          <div class="factory-grid">
+            <div class="render-queue"><div class="queue-head"><h3>本集渲染队列</h3><span id="queueCount">04 / 24</span></div><div class="queue-item rendering"><span class="queue-index">01</span><div><b>镜头 01 · 雨夜的频率</b><small>图生视频 · Kinetic 1.5</small></div><div class="render-progress"><i></i><span>68%</span></div></div><div class="queue-item"><span class="queue-index">02</span><div><b>镜头 02 · 最后一位听众</b><small>等待渲染</small></div><button class="queue-play">▷</button></div><div class="queue-item"><span class="queue-index">03</span><div><b>镜头 03 · 来自未来的声音</b><small>等待渲染</small></div><button class="queue-play">▷</button></div><div class="queue-item"><span class="queue-index">04</span><div><b>镜头 04 · 城市静默之前</b><small>等待渲染</small></div><button class="queue-play">▷</button></div><button class="queue-all" id="queueAll">✦ 渲染剩余 20 个镜头 <span>→</span></button></div>
+            <div class="sound-console"><div class="console-head"><div><span class="section-number">V</span><h3>声音总监</h3></div><span class="voice-live">● 配音待合成</span></div><div class="waveform" aria-label="音频波形"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="voice-line"><div class="voice-person"><span class="avatar amber">沈</span><div><b>沈清言 · 林霁</b><small>清冷、低语感 · Mandarin</small></div></div><button class="voice-play" id="voicePlay">▷</button></div><p class="voice-quote">“如果你听见这段话，说明雨已经开始下了。”</p><div class="sound-controls"><button class="tone active">情绪递进</button><button class="tone">环境音</button><button class="tone">配乐</button><button class="sound-settings">调音 <span>⌄</span></button></div></div>
+          </div>
+        </section>
+
+        <section class="delivery-section" id="delivery">
+          <div class="delivery-copy"><span class="eyebrow"><span></span> FINAL DELIVERY</span><h2>从灵感到首支样片，<br />只需一个制作链。</h2><p>当所有 Agent 通过一致性检查，映界会自动合成、质检并交付多平台版本。</p></div>
+          <div class="delivery-stats"><div><b id="totalDuration">02:47</b><span>预计成片时长</span></div><div><b>24</b><span>可交付镜头</span></div><div><b>92<span class="percent">%</span></b><span>叙事一致性</span></div><button id="finalizeProject">锁定并交付 <span>→</span></button></div>
+        </section>
+
+        <footer><span>映界 AI 短剧工场 · Concept Prototype</span><span>所有生成内容均需人工审核后发布</span></footer>
+      </main>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"><span>✦</span><p id="toastText">镜头已加入制作队列</p><button id="closeToast" aria-label="关闭提示">×</button></div>
+    <div class="modal-backdrop" id="modalBackdrop" aria-hidden="true"><div class="preview-modal" role="dialog" aria-modal="true" aria-labelledby="previewTitle"><button class="modal-close" id="modalClose" aria-label="关闭">×</button><div class="film-frame"><div class="film-title"><span>映界 · 样片预览</span><b>01:42</b></div><div class="film-static"></div><div class="film-city"><span>FM 97.4</span><div class="film-person"></div></div><div class="film-subtitle">“有人在未来，等着你接听。”</div><button class="big-play" id="modalPlay">▶</button></div><div class="preview-details"><div><span class="eyebrow small"><span></span> ROUGH CUT</span><h2 id="previewTitle">《昨日信号》· EP01</h2><p>基于当前分镜、角色资产与声音设定生成的样片预览。</p></div><button class="publish-button" id="modalExport">导出项目 ↗</button></div></div></div>
+    <script src="./app.js"></script>
+  </body>
+</html>
