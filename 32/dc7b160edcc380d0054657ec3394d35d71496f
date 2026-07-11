@@ -1,0 +1,21 @@
+app.js
+  s_2944aa7a9ab100::t_1156381f890bbf 60-61,63-70,83,204-205,209-218,220,229-234,246-247,257,261-265,267-268,374,381-386,397,400,404,458,463,522,553,600-606,608,614-615,630,736,748-750,754-755,758,767,821-824,829,912,943-948
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "32dc7b160edcc380d0054657ec3394d35d71496f",
+  "prompts": {},
+  "sessions": {
+    "s_2944aa7a9ab100": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f526e-1e56-76d1-b06d-d5108697cc9e",
+        "model": "unknown"
+      },
+      "human_author": "zengjiaming <zengjiaming.alex@bytedance.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
