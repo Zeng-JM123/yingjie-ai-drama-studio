@@ -1,0 +1,3 @@
+video-service/.env
+video-service/.env.*
+!video-service/.env.example

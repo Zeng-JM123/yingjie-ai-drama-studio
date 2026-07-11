@@ -140,11 +140,41 @@ $$('.inspect-agent').forEach(button => button.addEventListener('click', () => {
   notify(`已定位至「${name}」的可编辑产出`);
 }));
 
-const videoGateway = String(window.YINGJIE_CONFIG?.videoApiBaseUrl || '').replace(/\/$/, '');
 const seedanceButton = $('#generateSeedance');
+const videoGatewayStatus = $('#videoGatewayStatus');
+
+function getVideoGateway() {
+  const value = String(window.YINGJIE_CONFIG?.videoApiBaseUrl || '').trim().replace(/\/$/, '');
+  if (!value) return { url: '', error: '尚未配置' };
+  try {
+    const url = new URL(value);
+    const isLocal = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
+    if (!isLocal && url.protocol !== 'https:') throw new Error('生产环境必须使用 HTTPS');
+    if (isLocal && !['http:', 'https:'].includes(url.protocol)) throw new Error('网关地址协议无效');
+    return { url: url.toString().replace(/\/$/, ''), error: '' };
+  } catch (error) {
+    return { url: '', error: error.message || '网关地址格式无效' };
+  }
+}
+
+const videoGatewayConfig = getVideoGateway();
+const videoGateway = videoGatewayConfig.url;
+
+function setGatewayStatus(message, state = '') {
+  videoGatewayStatus.textContent = message;
+  videoGatewayStatus.className = `gateway-status show${state ? ` ${state}` : ''}`;
+}
+
+if (videoGateway) {
+  setGatewayStatus(`视频网关已配置：${new URL(videoGateway).host}`, 'ready');
+} else {
+  setGatewayStatus(`Seedance 网关${videoGatewayConfig.error}。部署 video-service 后，在 runtime-config.js 的 videoApiBaseUrl 填入 HTTPS 地址。`);
+  setSeedanceButton('✦ 等待网关配置', true);
+}
 
 function currentShotPrompt() {
-  return `《昨日信号》镜头 01：${$('.editor-fields h3').textContent}。雨夜电台直播间，女主抬头望向闪烁的调音台，电影级冷暖对比，克制悬疑氛围，缓慢推进镜头，主体与场景保持一致。`;
+  const shotId = $('.editor-shot-preview span').textContent;
+  return `《昨日信号》镜头 ${shotId}：${$('.editor-fields h3').textContent}。雨夜电台直播间，女主抬头望向闪烁的调音台，电影级冷暖对比，克制悬疑氛围，缓慢推进镜头，主体与场景保持一致。`;
 }
 
 function setSeedanceButton(label, disabled = false) {
@@ -152,16 +182,33 @@ function setSeedanceButton(label, disabled = false) {
   seedanceButton.disabled = disabled;
 }
 
+async function readApiResponse(response) {
+  const text = await response.text();
+  if (!text) return {};
+  try { return JSON.parse(text); } catch { return { error: `网关返回了无效响应（HTTP ${response.status}）` }; }
+}
+
+async function requestVideoGateway(path, options = {}) {
+  try {
+    const response = await fetch(`${videoGateway}${path}`, { ...options, signal: AbortSignal.timeout(35_000) });
+    const payload = await readApiResponse(response);
+    if (!response.ok) throw new Error(payload.error || `视频网关请求失败（HTTP ${response.status}）`);
+    return payload;
+  } catch (error) {
+    if (error.name === 'TimeoutError') throw new Error('视频网关响应超时，请稍后重试');
+    if (error instanceof TypeError) throw new Error('无法连接视频网关。请检查 runtime-config.js 地址、HTTPS 和 CORS_ORIGINS 配置');
+    throw error;
+  }
+}
+
 async function pollSeedanceTask(taskId, attempts = 0) {
   if (attempts >= 60) {
-    setSeedanceButton('✦ 生成超时，请查询任务');
+    setSeedanceButton('✦ 重试 Seedance 生成');
     return notify(`Seedance 任务 ${taskId} 超过 5 分钟仍未完成`);
   }
   await new Promise(resolve => setTimeout(resolve, 5_000));
   try {
-    const response = await fetch(`${videoGateway}/v1/video-jobs/${encodeURIComponent(taskId)}`);
-    const task = await response.json();
-    if (!response.ok) throw new Error(task.error || '无法查询 Seedance 任务');
+    const task = await requestVideoGateway(`/v1/video-jobs/${encodeURIComponent(taskId)}`);
     if (task.status === 'succeeded' && task.videoUrl) {
       setSeedanceButton('✓ Seedance 成片已就绪');
       $('#queueCount').textContent = '05 / 24';
@@ -182,7 +229,7 @@ async function pollSeedanceTask(taskId, attempts = 0) {
       return notify(`Seedance 未能生成该镜头：${task.error || task.status}`);
     }
     setSeedanceButton(`✦ Seedance ${task.status || '生成中'}…`, true);
-    pollSeedanceTask(taskId, attempts + 1);
+    return pollSeedanceTask(taskId, attempts + 1);
   } catch (error) {
     setSeedanceButton('✦ 重试 Seedance 生成');
     notify(error.message || '查询视频任务失败');
@@ -190,16 +237,15 @@ async function pollSeedanceTask(taskId, attempts = 0) {
 }
 
 async function generateWithSeedance() {
-  if (!videoGateway) return notify('Seedance 网关尚未配置：请按接入指南部署 video-service，再填入 runtime-config.js');
+  if (!videoGateway) return notify('Seedance 网关尚未配置，请先部署 video-service 并更新 runtime-config.js');
   setSeedanceButton('✦ 正在提交 Seedance…', true);
   try {
-    const response = await fetch(`${videoGateway}/v1/video-jobs`, {
+    const task = await requestVideoGateway('/v1/video-jobs', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ prompt: currentShotPrompt(), ratio: '9:16', duration: 5, resolution: '720p', generateAudio: false })
     });
-    const task = await response.json();
-    if (!response.ok || !task.id) throw new Error(task.error || 'Seedance 未返回任务 ID');
+    if (!task.id) throw new Error(task.error || 'Seedance 未返回任务 ID');
     setSeedanceButton('✦ Seedance 排队中…', true);
     notify(`Seedance 已接收镜头 01，任务 ${task.id}`);
     pollSeedanceTask(task.id);

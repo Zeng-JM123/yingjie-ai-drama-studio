@@ -25,16 +25,21 @@ sequenceDiagram
 
 ## 服务端配置
 
-`video-service/.env.example` 已写入当前 Endpoint ID。复制为部署平台的环境变量，不要提交 `.env`：
+`video-service/.env.example` 已写入当前 Endpoint ID。把以下值填入部署平台的 Secret / Environment Variables；本地 `.env` 已被忽略，绝不要提交：
 
 ```bash
 ARK_API_KEY=<在部署平台 Secret 中填写>
 ARK_VIDEO_ENDPOINT_ID=ep-20260712014412-l4ncj
 CORS_ORIGINS=https://zeng-jm123.github.io
 PORT=8787
+JOB_LIMIT_MAX=3
+JOB_LIMIT_WINDOW_SECONDS=300
+TRUST_PROXY=false
 ```
 
-本地试运行：
+`CORS_ORIGINS` 必须是网页实际部署地址的**完整 Origin**（协议 + 域名 + 可选端口），例如 `https://zeng-jm123.github.io`；不带路径、不加末尾 `/`。如果有预发布站点，用逗号追加它的 Origin。只有部署平台的反向代理会可靠覆写 `X-Forwarded-For` 时，才把 `TRUST_PROXY` 设为 `true`。
+
+本地试运行（仅在本机创建 `video-service/.env`）：
 
 ```bash
 cd video-service
@@ -48,11 +53,38 @@ npm start
 curl http://localhost:8787/healthz
 ```
 
+正常时会返回 `{"ok":true,"provider":"Seedance","configured":true}`。若 `configured` 是 `false`，检查部署平台是否已设置 `ARK_API_KEY` 和 `ARK_VIDEO_ENDPOINT_ID`，然后重新部署服务。
+
 ## 发布视频网关
 
-服务没有第三方运行时依赖，任意支持 Docker 或 Node 20 的服务都可部署。部署时把 `video-service/` 设为构建目录，使用其中的 Dockerfile，并在部署控制台填写上述三个环境变量。
+服务没有第三方运行时依赖，任意支持 Docker 或 Node 20 的服务都可部署。部署时把 `video-service/` 设为构建目录，使用其中的 Dockerfile，并在部署控制台填写上述环境变量。容器平台的端口变量通常会自动注入；本服务会读取 `PORT`。
 
-部署成功后，在根目录的 `runtime-config.js` 写入网关地址：
+以任意容器平台为例，发布配置应为：
+
+| 项目 | 值 |
+| --- | --- |
+| 构建上下文 | `video-service/` |
+| Dockerfile | `video-service/Dockerfile` |
+| 健康检查 | `GET /healthz` |
+| 公开端口 | 平台注入的 `PORT`（本地默认 `8787`） |
+| 私密变量 | `ARK_API_KEY`、`ARK_VIDEO_ENDPOINT_ID` |
+| 普通变量 | `CORS_ORIGINS`、`JOB_LIMIT_MAX`、`JOB_LIMIT_WINDOW_SECONDS`、`TRUST_PROXY` |
+
+Docker 本地验证：
+
+```bash
+docker build -t yingjie-video-service ./video-service
+docker run --rm --env-file video-service/.env -p 8787:8787 yingjie-video-service
+curl http://localhost:8787/healthz
+```
+
+部署成功并得到 HTTPS 地址后，先从终端验证再更新网页配置：
+
+```bash
+curl https://your-video-gateway.example.com/healthz
+```
+
+返回 `configured: true` 后，在根目录的 `runtime-config.js` 写入网关地址：
 
 ```js
 window.YINGJIE_CONFIG = {
@@ -60,7 +92,7 @@ window.YINGJIE_CONFIG = {
 };
 ```
 
-随后推送到 GitHub Pages。前端的“使用 Seedance 生成”会创建单镜头任务、每 5 秒轮询任务状态，成功后展示返回的视频链接。
+随后推送 `runtime-config.js` 到 GitHub Pages。前端会显示“视频网关已配置”；“使用 Seedance 生成”会创建单镜头任务、每 5 秒轮询任务状态，成功后展示返回的视频链接。若仍显示连接失败，依次检查：网页地址是否列在 `CORS_ORIGINS`、网关是否为 HTTPS、`/healthz` 是否返回 `configured: true`。
 
 ## 接口合同
 
@@ -98,6 +130,7 @@ window.YINGJIE_CONFIG = {
 ## 平台侧安全与运营规则
 
 - 仅对允许的前端域名开放 CORS；生产环境不要保留本地调试来源。
+- CORS 不是身份认证，不能阻止他人直接调用公开 URL。本服务加入了按来源 IP 的进程内限流（默认 5 分钟 3 个任务）以避免误触发；多实例生产环境还应接入登录态、预算审批和共享的 Redis/数据库限流，不能只依赖这一层。
 - 每次请求限制一个镜头、最大 1500 字符提示词；批量生产应经过队列、预算和人工审批。
 - 只在用户确认后提交收费任务。`generateAudio` 默认关闭，且只有兼容的 Endpoint 才应开启。
 - 保存任务 ID、镜头/资产版本、模型 Endpoint、用户、成本和审核结论；视频外链有效期和平台实际返回为准，应尽快转存到项目对象存储。

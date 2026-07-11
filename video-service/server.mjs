@@ -2,6 +2,11 @@ import { createServer } from "node:http";
 
 const port = Number(process.env.PORT || 8787);
 const arkBaseUrl = "https://ark.cn-beijing.volces.com/api/v3";
+const maxRequestBytes = 32_000;
+const jobLimitWindowMs = positiveInteger(process.env.JOB_LIMIT_WINDOW_SECONDS, 300) * 1_000;
+const jobLimitMax = positiveInteger(process.env.JOB_LIMIT_MAX, 3);
+const trustProxy = process.env.TRUST_PROXY === "true";
+const jobSlots = new Map();
 const allowedOrigins = new Set(
   (process.env.CORS_ORIGINS || "https://zeng-jm123.github.io,http://localhost:4173,http://127.0.0.1:4173")
     .split(",").map(origin => origin.trim()).filter(Boolean)
@@ -9,8 +14,19 @@ const allowedOrigins = new Set(
 const supportedRatios = new Set(["9:16", "16:9", "1:1", "3:4", "4:3", "21:9", "adaptive"]);
 const supportedDurations = new Set([2, 3, 4, 5, 6, 8, 10, 12]);
 
-function respond(response, status, body, origin) {
-  const headers = { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "Vary": "Origin" };
+function positiveInteger(value, fallback) {
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function httpError(message, status = 400) {
+  const error = new Error(message);
+  error.status = status;
+  return error;
+}
+
+function respond(response, status, body, origin, extraHeaders = {}) {
+  const headers = { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "Vary": "Origin", ...extraHeaders };
   if (origin && allowedOrigins.has(origin)) {
     headers["Access-Control-Allow-Origin"] = origin;
     headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS";
@@ -25,12 +41,20 @@ function configured() {
 }
 
 async function readJson(request) {
+  const contentLength = Number(request.headers["content-length"] || 0);
+  if (Number.isFinite(contentLength) && contentLength > maxRequestBytes) throw httpError("Request body is too large.", 413);
   let raw = "";
+  let size = 0;
   for await (const chunk of request) {
+    size += chunk.length;
+    if (size > maxRequestBytes) throw httpError("Request body is too large.", 413);
     raw += chunk;
-    if (raw.length > 32_000) throw new Error("Request body is too large.");
   }
-  try { return JSON.parse(raw || "{}"); } catch { throw new Error("Request body must be valid JSON."); }
+  try {
+    const value = JSON.parse(raw || "{}");
+    if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error();
+    return value;
+  } catch { throw httpError("Request body must be a JSON object."); }
 }
 
 function assertHttpUrl(value, name) {
@@ -39,7 +63,31 @@ function assertHttpUrl(value, name) {
     const url = new URL(value);
     if (!["https:", "http:"].includes(url.protocol)) throw new Error();
     return url.toString();
-  } catch { throw new Error(`${name} must be an HTTP(S) URL.`); }
+  } catch { throw httpError(`${name} must be an HTTP(S) URL.`); }
+}
+
+function clientKey(request) {
+  if (trustProxy) {
+    const forwardedFor = request.headers["x-forwarded-for"];
+    if (typeof forwardedFor === "string" && forwardedFor) return forwardedFor.split(",")[0].trim();
+  }
+  return request.socket.remoteAddress || "unknown";
+}
+
+function takeJobSlot(request) {
+  const now = Date.now();
+  if (jobSlots.size > 10_000) {
+    for (const [key, slot] of jobSlots) if (now >= slot.resetAt) jobSlots.delete(key);
+  }
+  const key = clientKey(request);
+  const current = jobSlots.get(key);
+  if (!current || now >= current.resetAt) {
+    jobSlots.set(key, { count: 1, resetAt: now + jobLimitWindowMs });
+    return 0;
+  }
+  if (current.count >= jobLimitMax) return Math.ceil((current.resetAt - now) / 1_000);
+  current.count += 1;
+  return 0;
 }
 
 function addSeedanceControls(prompt, { ratio, duration, resolution }) {
@@ -78,15 +126,17 @@ function normalizeTask(payload) {
   };
 }
 
-async function createVideoJob(input) {
-  const prompt = String(input.prompt || "").trim();
-  if (prompt.length < 8 || prompt.length > 1_500) throw new Error("prompt must contain 8–1500 characters.");
-  const ratio = input.ratio || "9:16";
-  const duration = Number(input.duration || 5);
-  const resolution = input.resolution || "720p";
-  if (!supportedRatios.has(ratio)) throw new Error("Unsupported aspect ratio.");
-  if (!supportedDurations.has(duration)) throw new Error("Unsupported duration.");
-  if (!["480p", "720p", "1080p"].includes(resolution)) throw new Error("Unsupported resolution.");
+function buildVideoJobRequest(input) {
+  if (typeof input.prompt !== "string") throw httpError("prompt must be a string.");
+  const prompt = input.prompt.trim();
+  if (prompt.length < 8 || prompt.length > 1_500) throw httpError("prompt must contain 8–1500 characters.");
+  const ratio = input.ratio ?? "9:16";
+  const duration = input.duration ?? 5;
+  const resolution = input.resolution ?? "720p";
+  if (typeof ratio !== "string" || !supportedRatios.has(ratio)) throw httpError("Unsupported aspect ratio.");
+  if (!Number.isInteger(duration) || !supportedDurations.has(duration)) throw httpError("Unsupported duration.");
+  if (typeof resolution !== "string" || !["480p", "720p", "1080p"].includes(resolution)) throw httpError("Unsupported resolution.");
+  if (input.generateAudio !== undefined && typeof input.generateAudio !== "boolean") throw httpError("generateAudio must be a boolean.");
 
   const firstFrameUrl = assertHttpUrl(input.firstFrameUrl, "firstFrameUrl");
   const lastFrameUrl = assertHttpUrl(input.lastFrameUrl, "lastFrameUrl");
@@ -96,6 +146,10 @@ async function createVideoJob(input) {
 
   const requestBody = { model: process.env.ARK_VIDEO_ENDPOINT_ID, content };
   if (input.generateAudio === true) requestBody.generate_audio = true;
+  return requestBody;
+}
+
+async function createVideoJob(requestBody) {
   return normalizeTask(await arkRequest("/contents/generations/tasks", { method: "POST", body: JSON.stringify(requestBody) }));
 }
 
@@ -107,7 +161,13 @@ const server = createServer(async (request, response) => {
   if (request.method === "GET" && url.pathname === "/healthz") return respond(response, 200, { ok: true, provider: "Seedance", configured: configured() }, origin);
   if (!configured()) return respond(response, 503, { error: "Video service is not configured. Set ARK_API_KEY and ARK_VIDEO_ENDPOINT_ID." }, origin);
   try {
-    if (request.method === "POST" && url.pathname === "/v1/video-jobs") return respond(response, 202, await createVideoJob(await readJson(request)), origin);
+    if (request.method === "POST" && url.pathname === "/v1/video-jobs") {
+      const input = await readJson(request);
+      const requestBody = buildVideoJobRequest(input);
+      const retryAfter = takeJobSlot(request);
+      if (retryAfter) return respond(response, 429, { error: "Too many video jobs. Please try again later." }, origin, { "Retry-After": String(retryAfter) });
+      return respond(response, 202, await createVideoJob(requestBody), origin);
+    }
     const taskMatch = url.pathname.match(/^\/v1\/video-jobs\/(cgt-[A-Za-z0-9-]+)$/);
     if (request.method === "GET" && taskMatch) return respond(response, 200, normalizeTask(await arkRequest(`/contents/generations/tasks/${taskMatch[1]}`)), origin);
     return respond(response, 404, { error: "Not found." }, origin);
