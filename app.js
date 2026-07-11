@@ -140,8 +140,80 @@ $$('.inspect-agent').forEach(button => button.addEventListener('click', () => {
   notify(`已定位至「${name}」的可编辑产出`);
 }));
 
-$('#queueAll').addEventListener('click', () => { $('#queueCount').textContent = '24 / 24'; notify('已将 20 个镜头加入后台渲染队列'); });
-$$('.queue-play').forEach(button => button.addEventListener('click', () => notify('单镜头渲染已开始，完成后将自动质检')));
+const videoGateway = String(window.YINGJIE_CONFIG?.videoApiBaseUrl || '').replace(/\/$/, '');
+const seedanceButton = $('#generateSeedance');
+
+function currentShotPrompt() {
+  return `《昨日信号》镜头 01：${$('.editor-fields h3').textContent}。雨夜电台直播间，女主抬头望向闪烁的调音台，电影级冷暖对比，克制悬疑氛围，缓慢推进镜头，主体与场景保持一致。`;
+}
+
+function setSeedanceButton(label, disabled = false) {
+  seedanceButton.textContent = label;
+  seedanceButton.disabled = disabled;
+}
+
+async function pollSeedanceTask(taskId, attempts = 0) {
+  if (attempts >= 60) {
+    setSeedanceButton('✦ 生成超时，请查询任务');
+    return notify(`Seedance 任务 ${taskId} 超过 5 分钟仍未完成`);
+  }
+  await new Promise(resolve => setTimeout(resolve, 5_000));
+  try {
+    const response = await fetch(`${videoGateway}/v1/video-jobs/${encodeURIComponent(taskId)}`);
+    const task = await response.json();
+    if (!response.ok) throw new Error(task.error || '无法查询 Seedance 任务');
+    if (task.status === 'succeeded' && task.videoUrl) {
+      setSeedanceButton('✓ Seedance 成片已就绪');
+      $('#queueCount').textContent = '05 / 24';
+      notify('Seedance 已生成镜头 01，点击“预览成片”可继续审阅');
+      $('#previewTitle').textContent = '《昨日信号》· EP01 · Seedance 样片';
+      const previewInfo = $('.preview-details p');
+      previewInfo.textContent = 'Seedance 已完成生成。视频外链可能会过期，请及时转存到项目素材库。 ';
+      const videoLink = document.createElement('a');
+      videoLink.href = task.videoUrl;
+      videoLink.target = '_blank';
+      videoLink.rel = 'noopener';
+      videoLink.textContent = '打开生成视频 ↗';
+      previewInfo.append(videoLink);
+      return;
+    }
+    if (['failed', 'cancelled', 'canceled'].includes(task.status)) {
+      setSeedanceButton('✦ 重新使用 Seedance 生成');
+      return notify(`Seedance 未能生成该镜头：${task.error || task.status}`);
+    }
+    setSeedanceButton(`✦ Seedance ${task.status || '生成中'}…`, true);
+    pollSeedanceTask(taskId, attempts + 1);
+  } catch (error) {
+    setSeedanceButton('✦ 重试 Seedance 生成');
+    notify(error.message || '查询视频任务失败');
+  }
+}
+
+async function generateWithSeedance() {
+  if (!videoGateway) return notify('Seedance 网关尚未配置：请按接入指南部署 video-service，再填入 runtime-config.js');
+  setSeedanceButton('✦ 正在提交 Seedance…', true);
+  try {
+    const response = await fetch(`${videoGateway}/v1/video-jobs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: currentShotPrompt(), ratio: '9:16', duration: 5, resolution: '720p', generateAudio: false })
+    });
+    const task = await response.json();
+    if (!response.ok || !task.id) throw new Error(task.error || 'Seedance 未返回任务 ID');
+    setSeedanceButton('✦ Seedance 排队中…', true);
+    notify(`Seedance 已接收镜头 01，任务 ${task.id}`);
+    pollSeedanceTask(task.id);
+  } catch (error) {
+    setSeedanceButton('✦ 使用 Seedance 生成');
+    notify(error.message || 'Seedance 提交失败');
+  }
+}
+
+seedanceButton.addEventListener('click', generateWithSeedance);
+$('#queueAll').addEventListener('click', () => notify('批量出片会产生连续费用，请在生产服务的预算审批队列中执行'));
+$$('.queue-play').forEach(button => button.addEventListener('click', () => {
+  notify(`镜头 ${button.dataset.shot} 已选中；确认分镜后可单独提交 Seedance`);
+}));
 
 let voicePlaying = false;
 $('#voicePlay').addEventListener('click', e => { voicePlaying = !voicePlaying; e.currentTarget.textContent = voicePlaying ? 'Ⅱ' : '▷'; notify(voicePlaying ? '正在试听角色音色与台词节奏…' : '已暂停试听'); });
