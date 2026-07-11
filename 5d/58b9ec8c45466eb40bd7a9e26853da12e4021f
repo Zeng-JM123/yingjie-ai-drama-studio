@@ -1,0 +1,39 @@
+README.md
+  s_501a6fc1244888::t_034c7d2db3a23f 17,32,41,43-44,50
+app.js
+  s_501a6fc1244888::t_40a1190f61a9a0 143-216
+docs/Seedance接入指南.md
+  s_501a6fc1244888::t_d3ef4393e30ef2 1-104
+index.html
+  s_501a6fc1244888::t_b02959f4848d11 112,128
+runtime-config.js
+  s_501a6fc1244888::t_ae7d7316eb0fe1 1-4
+styles.css
+  s_501a6fc1244888::t_b4323542e298e8 27
+video-service/.env.example
+  s_501a6fc1244888::t_0faf815c513fb5 1-5
+video-service/Dockerfile
+  s_501a6fc1244888::t_21f6369b09a324 1-6
+video-service/package.json
+  s_501a6fc1244888::t_f474badb39e599 1-12
+video-service/server.mjs
+  s_501a6fc1244888::t_a5ec177f946117 1-120
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "5d58b9ec8c45466eb40bd7a9e26853da12e4021f",
+  "prompts": {},
+  "sessions": {
+    "s_501a6fc1244888": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f522e-fce0-7202-bc4a-c76d2f8e4a74",
+        "model": "unknown"
+      },
+      "human_author": "zengjiaming <zengjiaming.alex@bytedance.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
