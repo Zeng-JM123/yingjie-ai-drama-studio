@@ -1,0 +1,21 @@
+.github/workflows/pages.yml
+  s_d6ee06c59a2845::t_88d01f0d01879d 25,29
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "a3be99cf6c9f9540555f294863a7ec36560399f3",
+  "prompts": {},
+  "sessions": {
+    "s_d6ee06c59a2845": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f5260-18dc-7390-a05d-89933796d4b4",
+        "model": "unknown"
+      },
+      "human_author": "zengjiaming <zengjiaming.alex@bytedance.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
