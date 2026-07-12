@@ -35,10 +35,13 @@ PORT=8787
 JOB_LIMIT_MAX=3
 JOB_LIMIT_WINDOW_SECONDS=300
 TRUST_PROXY=false
+ALLOW_LOOPBACK_ORIGINS=false
 DATABASE_PATH=./data/yingjie.db
 ```
 
 `CORS_ORIGINS` 必须是网页实际部署地址的**完整 Origin**（协议 + 域名 + 可选端口），例如 `https://zeng-jm123.github.io`；不带路径、不加末尾 `/`。如果有预发布站点，用逗号追加它的 Origin。只有部署平台的反向代理会可靠覆写 `X-Forwarded-For` 时，才把 `TRUST_PROXY` 设为 `true`。
+
+本机调试时可把 `ALLOW_LOOPBACK_ORIGINS=true` 写入私密 `.env`，让 `localhost` / `127.0.0.1` 的任意 HTTP 端口访问网关；公开部署保持 `false`，并只在 `CORS_ORIGINS` 中列出明确的站点 Origin。
 
 本地试运行（仅在本机创建 `video-service/.env`）：
 

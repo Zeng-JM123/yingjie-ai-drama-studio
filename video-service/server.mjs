@@ -16,6 +16,7 @@ const allowedOrigins = new Set(
   (process.env.CORS_ORIGINS || "https://zeng-jm123.github.io,http://localhost:4173,http://127.0.0.1:4173,http://localhost:8000,http://127.0.0.1:8000")
     .split(",").map(origin => origin.trim()).filter(Boolean)
 );
+const allowLoopbackOrigins = process.env.ALLOW_LOOPBACK_ORIGINS === "true";
 const supportedRatios = new Set(["9:16", "16:9", "1:1", "3:4", "4:3", "21:9", "adaptive"]);
 const supportedDurations = new Set([2, 3, 4, 5, 6, 8, 10, 12]);
 
@@ -30,9 +31,20 @@ function httpError(message, status = 400) {
   return error;
 }
 
+function isAllowedOrigin(origin) {
+  if (allowedOrigins.has(origin)) return true;
+  if (!allowLoopbackOrigins) return false;
+  try {
+    const url = new URL(origin);
+    return url.protocol === "http:" && ["localhost", "127.0.0.1", "::1", "[::1]"].includes(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
 function respond(response, status, body, origin, extraHeaders = {}) {
   const headers = { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "Vary": "Origin", ...extraHeaders };
-  if (origin && allowedOrigins.has(origin)) {
+  if (origin && isAllowedOrigin(origin)) {
     headers["Access-Control-Allow-Origin"] = origin;
     headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, OPTIONS";
     headers["Access-Control-Allow-Headers"] = "Content-Type";
@@ -168,7 +180,7 @@ async function createVideoJob(requestBody) {
 const server = createServer(async (request, response) => {
   const origin = request.headers.origin;
   if (request.method === "OPTIONS") return respond(response, 204, {}, origin);
-  if (origin && !allowedOrigins.has(origin)) return respond(response, 403, { error: "Origin is not allowed." }, origin);
+  if (origin && !isAllowedOrigin(origin)) return respond(response, 403, { error: "Origin is not allowed." }, origin);
   const url = new URL(request.url, `http://${request.headers.host}`);
   if (request.method === "GET" && url.pathname === "/healthz") return respond(response, 200, { ok: true, provider: "Seedance", configured: configured(), database: "sqlite" }, origin);
   try {

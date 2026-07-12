@@ -1,6 +1,7 @@
 video-service/.env
 video-service/.env.*
 !video-service/.env.example
+video-service/deploy/volcengine/.env
 video-service/data/
 *.db
 *.db-shm

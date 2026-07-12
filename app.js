@@ -129,7 +129,17 @@ const seasonBlueprint = [
 ];
 
 const toast = $('#toast');
-const config = window.YINGJIE_CONFIG || {};
+const runtimeConfig = window.YINGJIE_CONFIG || {};
+const localPreviewGateway = ['localhost', '127.0.0.1', '::1', '[::1]'].includes(window.location.hostname)
+  ? 'http://127.0.0.1:8787'
+  : '';
+const config = {
+  ...runtimeConfig,
+  // A local preview remains usable even when an old cached runtime-config.js
+  // is served. Published sites still require an explicit HTTPS gateway URL.
+  studioApiBaseUrl: runtimeConfig.studioApiBaseUrl || localPreviewGateway,
+  videoApiBaseUrl: runtimeConfig.videoApiBaseUrl || localPreviewGateway
+};
 const studioGateway = String(config.studioApiBaseUrl || config.videoApiBaseUrl || '').replace(/\/$/, '');
 const studioProjectId = /^[A-Za-z0-9_-]{1,80}$/.test(config.projectId || '') ? config.projectId : 'yesterday-signal-ep01';
 const localStudioStorageKey = `yingjie:studio:${studioProjectId}`;
