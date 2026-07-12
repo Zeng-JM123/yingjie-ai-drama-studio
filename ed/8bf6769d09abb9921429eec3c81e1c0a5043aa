@@ -1,0 +1,43 @@
+.gitignore
+  s_0b3e9d385ea040::t_6bb90558c6036d 4
+app.js
+  s_0b3e9d385ea040::t_4e2bea7bc78701 132-142
+docs/Seedance接入指南.md
+  s_0b3e9d385ea040::t_59f2c69e3b01d5 38,44-45
+docs/火山引擎生产部署.md
+  s_0b3e9d385ea040::t_5201144bbf5748 1-97
+index.html
+  s_0b3e9d385ea040::t_355627cda2f2a9 272
+runtime-config.js
+  s_0b3e9d385ea040::t_e6fc01faf004c8 3-5
+video-service/.env.example
+  s_0b3e9d385ea040::t_1ce6427c97a49b 12-13
+video-service/deploy/volcengine/.env.example
+  s_0b3e9d385ea040::t_56c6d35e12fe64 1-16
+video-service/deploy/volcengine/Caddyfile
+  s_0b3e9d385ea040::t_23592def21a7cb 1-16
+video-service/deploy/volcengine/bootstrap-ubuntu.sh
+  s_0b3e9d385ea040::t_2732b8582705df 1-16
+video-service/deploy/volcengine/docker-compose.yml
+  s_0b3e9d385ea040::t_94b237ef690ee2 1-53
+video-service/server.mjs
+  s_0b3e9d385ea040::t_1acc24d1e07c0b 19,34-44,47,183
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "ed8bf6769d09abb9921429eec3c81e1c0a5043aa",
+  "prompts": {},
+  "sessions": {
+    "s_0b3e9d385ea040": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f5280-0532-7e22-a37f-b8a9bb961054",
+        "model": "unknown"
+      },
+      "human_author": "zengjiaming <zengjiaming.alex@bytedance.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
