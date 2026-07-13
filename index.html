@@ -8,9 +8,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Noto+Serif+SC:wght@500;600;700;900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="./styles.css?v=20260712" />
+    <link rel="stylesheet" href="./styles.css?v=20260713-production-live" />
     <link rel="stylesheet" href="./layout-recovery.css?v=20260712" />
-    <link rel="stylesheet" href="./production-studio.css?v=20260713" />
+    <link rel="stylesheet" href="./production-studio.css?v=20260713-production-live" />
     <style>
       .cast-thumb.generated { background: radial-gradient(circle at 50% 34%, #f5d1b1 0 19%, transparent 20%), linear-gradient(145deg, #483a58 0 45%, #746695 46% 56%, #282b40 57%); }
       .draft-character .portrait-stage img { opacity: .32; filter: grayscale(1) blur(1px); }
@@ -48,7 +48,7 @@
 
       <main class="content" id="dashboard">
         <header class="topbar">
-          <div class="breadcrumbs"><span>项目空间</span><i>/</i><span>都市悬疑</span><i>/</i><b>第一季 · 60 集总控</b><span class="save-state" id="saveState">● 已保存</span></div>
+          <div class="breadcrumbs"><span>项目空间</span><i>/</i><span>都市悬疑</span><i>/</i><b>第一季 · 60 集总控</b><button class="save-state" id="saveState" type="button" title="查看项目数据保存位置">● 正在确定存储位置</button></div>
           <div class="top-actions"><button class="icon-button" id="commandBtn" aria-label="打开命令面板">⌘ K</button><button class="subtle-button" id="exportBtn">导出项目 ↗</button><button class="preview-button" id="previewBtn"><span>▶</span> 预览样片</button></div>
         </header>
 
@@ -323,7 +323,7 @@
     </div>
 
     <script src="./runtime-config.js?v=20260712-seedance-local"></script>
-    <script src="./production-studio.js?v=20260713"></script>
-    <script src="./app.js"></script>
+    <script src="./production-studio.js?v=20260713-production-live"></script>
+    <script src="./app.js?v=20260713-production-live"></script>
   </body>
 </html>

@@ -313,6 +313,15 @@ function setText(selector, value, root = document) {
   return node;
 }
 
+function renderProjectIdentity(title = projectMetadata.title || '未命名短剧', episode = selectedSeasonEpisode || 1) {
+  const episodeCode = `EP${String(episode).padStart(2, '0')}`;
+  setText('#projectSwitcher b', `《${title}》`);
+  setText('#projectSwitcher small', `${episodeCode} · 竖屏短剧`);
+  setText('.project-art', title.slice(0, 1) || '映');
+  setText('.breadcrumbs b', `${title} · ${episodeCode}`);
+  setText('#modalTitle', `《${title}》· ${episodeCode}`);
+}
+
 // Kept for compatibility with deployments that render the legacy gateway badge.
 // The current studio can run without this optional element.
 function setGatewayStatus(message, state = '') {
@@ -327,8 +336,8 @@ function setSaveState(state = 'saving') {
   const label = $('#saveState');
   const states = {
     saving: ['● 保存中', '#b0803c'],
-    saved: ['● 已保存', '#5d9870'],
-    local: ['● 已保存到本机', '#5d9870'],
+    saved: ['● 云端 SQLite 已同步', '#5d9870'],
+    local: ['● 本机浏览器已保存', '#5d9870'],
     offline: ['● 未连接服务端', '#a46e51'],
     conflict: ['● 发现更新冲突', '#a46e51']
   };
@@ -336,6 +345,11 @@ function setSaveState(state = 'saving') {
   if (!label) return;
   label.textContent = text;
   label.style.color = color;
+  label.title = state === 'saved'
+    ? `项目数据已写入服务端 SQLite（项目 ${studioProjectId}）`
+    : state === 'local'
+      ? `项目数据保存在当前浏览器 localStorage（${localStudioStorageKey}）`
+      : '查看项目数据保存位置';
 }
 
 function renderFeed() {
@@ -376,7 +390,7 @@ function buildStudioPayload() {
   return {
     expectedRevision: projectRevision || undefined,
     project: {
-      name: '昨日信号', episode: 1, format: '9:16', brief: $('#briefInput').value.trim(),
+      name: projectMetadata.title || '未命名短剧', episode: selectedSeasonEpisode || 1, format: '9:16', brief: $('#briefInput').value.trim(),
       tags: $$('.tag.active').map(tag => tag.textContent.trim()), beats, selectedCharacterId: selectedCharacter,
       metadata: projectMetadata
     },
@@ -651,7 +665,11 @@ function selectCharacter(id, silent = false) {
   setText('#characterVoice', character.voice);
   setText('#characterAnchor', character.anchor);
   const image = $('#characterImage');
-  if (image) { image.src = character.image; image.alt = character.alt; }
+  if (image) {
+    if (character.image) image.src = character.image;
+    else image.removeAttribute('src');
+    image.alt = character.alt;
+  }
   $('#characterStudio')?.classList.toggle('draft-character', Boolean(character.draft));
   $$('#lookChips button').forEach(button => button.classList.toggle('active', button.dataset.look === character.look));
   if (!silent) {
@@ -797,6 +815,8 @@ function applyStudio(studio) {
   studio.shots.forEach(({ key, ...shot }) => { shots[key] = shot; });
   projectRevision = studio.project.revision;
   projectMetadata = studio.project.metadata || {};
+  projectMetadata.title = projectMetadata.title || studio.project.name || '未命名短剧';
+  selectedSeasonEpisode = Math.max(1, Number(studio.project.episode) || 1);
   activities = studio.activity || [];
   $('#briefInput').value = studio.project.brief || '';
   const selectedTags = new Set(studio.project.tags || []);
@@ -813,6 +833,7 @@ function applyStudio(studio) {
   renderSeasonPlan();
   hydratePreviewState();
   updateShotCount();
+  renderProjectIdentity(projectMetadata.title, studio.project.episode || 1);
   window.YingjieProduction?.hydrate();
 }
 
@@ -853,7 +874,12 @@ function closeModal(modal) {
 }
 
 $('#closeToast').addEventListener('click', () => toast.classList.remove('show'));
-$('#projectSwitcher').addEventListener('click', () => notify('当前项目：昨日信号 · 第 01 集（项目切换将在团队空间开放）'));
+$('#saveState')?.addEventListener('click', () => {
+  notify(studioGateway
+    ? `当前项目已同步到服务端 SQLite；项目标识：${studioProjectId}。`
+    : `当前 GitHub Pages 未连接项目服务；数据保存在此浏览器 localStorage：${localStudioStorageKey}，更换浏览器或设备不会自动同步。`);
+});
+$('#projectSwitcher').addEventListener('click', () => notify(`当前项目：${projectMetadata.title || '未命名短剧'} · EP${String(selectedSeasonEpisode || 1).padStart(2, '0')}（项目切换将在团队空间开放）`));
 $('#guideBtn').addEventListener('click', () => notify('建议顺序：锁角色 → 设镜头 → 审样片 → 过交付门禁'));
 $('#commandBtn').addEventListener('click', () => {
   const brief = $('#briefInput');
@@ -935,22 +961,31 @@ $('#runSeasonCheck').addEventListener('click', event => {
 $('#openEpisodeProduction').addEventListener('click', () => {
   const episode = seasonEpisodeByNumber(selectedSeasonEpisode);
   if (!episode) return;
-  setText('.breadcrumbs b', `第 ${String(episode.number).padStart(2, '0')} 集 · ${episode.title}`);
+  const result = window.YingjieProduction?.loadEpisode(episode.number);
+  renderProjectIdentity(projectMetadata.title, episode.number);
   $('#storyboard').scrollIntoView({ behavior: 'smooth', block: 'start' });
-  notify(`已加载 EP${String(episode.number).padStart(2, '0')} 的故事交接：分镜会继承「${episode.hook}」。`);
+  notify(`已加载 EP${String(episode.number).padStart(2, '0')} 的故事交接并实时生成 ${result?.shotCount || 8} 个分镜：镜头继承「${episode.hook}」。`);
 });
 
-const productionStages = [
-  ['剧本架构师', '已根据新指令校验人物动机与钩子密度。', 'amber'],
-  ['视觉设定师', '已把角色锚点和天气规则同步到镜头提示词。', 'purple'],
-  ['镜头导演', '已按叙事张力重排当前序列的镜头节奏。', 'blue'],
-  ['声音总监', '已为主要台词写入情绪与环境声层次。', 'purple']
-];
 let isRunning = false;
 function runPipeline() {
   if (isRunning) return;
   const brief = $('#briefInput').value.trim();
   if (!brief) return notify('请先写下本集的创作指令');
+  let result;
+  try {
+    result = window.YingjieProduction?.buildProject(brief, { source: 'brief', episodeNumber: 1 });
+  } catch (error) {
+    notify(error.message || '生产工程构建失败，请检查输入后重试。');
+    return;
+  }
+  if (!result) return notify('生产引擎尚未就绪，请刷新页面后重试。');
+  const productionStages = [
+    ['剧本架构师', `已识别 ${result.characterCount} 个人物、${result.sceneCount} 个场景并重建 ${result.episodeCount} 集故事图。`, 'amber'],
+    ['视觉设定师', `已为《${result.title}》重建角色、世界规则和可追溯素材版本。`, 'purple'],
+    ['镜头导演', `已根据新故事实时生成 EP01 的 ${result.shotCount} 个分镜与三幕剧情节拍。`, 'blue'],
+    ['声音总监', '已把对白、环境声和人物声线约束写入当前分镜生产数据。', 'purple']
+  ];
   isRunning = true;
   const button = $('#runPipeline');
   button.disabled = true;
@@ -964,7 +999,7 @@ function runPipeline() {
       setText('#healthScore', '94');
       projectMetadata.healthScore = 94;
       scheduleProjectSave();
-      notify('制作链已更新：角色、分镜与审片清单保持同步');
+      notify(`《${result.title}》制作链已真实更新：${result.characterCount} 人物、${result.shotCount} 分镜、${result.assetCount} 项素材已写入项目。`);
       return;
     }
     const [agent, copy, kind] = productionStages[index];
@@ -1521,7 +1556,7 @@ $('#modalPlay').addEventListener('click', () => { void togglePlayer('modal'); })
 function exportProject() {
   const production = getProduction();
   const project = {
-    name: '昨日信号', episode: 1, format: '9:16', brief: $('#briefInput').value,
+    name: projectMetadata.title || '未命名短剧', episode: selectedSeasonEpisode || 1, format: '9:16', brief: $('#briefInput').value,
     selectedCharacter: characters[selectedCharacter].name,
     characters: Object.values(characters).map(({ name, role, anchor, look }) => ({ name, role, anchor, look })),
     shots: Object.values(shots),
@@ -1533,7 +1568,7 @@ function exportProject() {
   const url = URL.createObjectURL(new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' }));
   const link = document.createElement('a');
   link.href = url;
-  link.download = 'yingjie-episode-01-project.json';
+  link.download = `yingjie-${String(projectMetadata.title || 'project').replace(/[^A-Za-z0-9\u4e00-\u9fa5_-]+/g, '-')}-ep${String(selectedSeasonEpisode || 1).padStart(2, '0')}.json`;
   link.click();
   URL.revokeObjectURL(url);
   notify('项目 JSON 已导出，包含角色锚点、镜头参数和创作指令。');

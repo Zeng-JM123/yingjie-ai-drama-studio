@@ -28,6 +28,8 @@
 
 前端仍可双击 `index.html` 查看离线预览；要保存项目数据，需同时启动下方的数据服务并在 `runtime-config.js` 配置其 HTTPS 地址。
 
+默认的 GitHub Pages 预览没有配置服务端，因此项目快照会保存到当前浏览器的 `localStorage`，键名为 `yingjie:studio:<projectId>`；它不会跨浏览器或设备同步。配置 `studioApiBaseUrl` 后，页面会改为通过项目 API 将项目、角色、分镜、画布、素材版本和制作日志写入服务端 SQLite，数据库文件位置由 `DATABASE_PATH` 指定。
+
 ## 项目数据服务与数据库
 
 `video-service/` 现在同时提供项目数据 API。它使用 Node.js 内置 SQLite（Node **22.13+**），首次读取项目时会写入一份服务端种子数据；之后角色、分镜、Brief、标签、画布节点、素材版本、制作日志、审片状态和交付状态都会在用户操作后自动保存。Seedance 视频任务的项目/镜头归属和任务状态也会入库。

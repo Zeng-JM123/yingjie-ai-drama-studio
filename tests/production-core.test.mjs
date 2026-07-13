@@ -83,6 +83,25 @@ test('single episode mode closes the story in one production unit', async () => 
   assert.match(plan.episodes[0].handoff, /单集叙事已闭环/);
 });
 
+test('brief character list rebuilds story-specific episode shots', async () => {
+  const { production } = await loadProductionCore();
+  const brief = '孙悟空、哪吒、猪八戒、唐僧四个人打麻将';
+  const analysis = production.analyzeSource(brief, 'series');
+  const plan = production.createSeasonPlan(analysis);
+  const episode = production.createEpisodeProduction(plan.episodes[0], analysis);
+  const serialized = JSON.stringify(episode);
+
+  assert.deepEqual(Array.from(analysis.characters), ['孙悟空', '哪吒', '猪八戒', '唐僧']);
+  assert.equal(analysis.scenes[0], '麻将桌旁');
+  assert.match(plan.episodes[0].story, /孙悟空.*打麻将/);
+  assert.match(serialized, /孙悟空/);
+  assert.match(serialized, /哪吒/);
+  assert.match(serialized, /猪八戒/);
+  assert.match(serialized, /唐僧/);
+  assert.equal(Object.keys(episode.shots).length, 8);
+  assert.doesNotMatch(serialized, /沈清言|陆予泽|电台直播间/);
+});
+
 test('video generation prompt inherits locked asset versions', async () => {
   const { production, context } = await loadProductionCore();
   context.projectMetadata.productionStudio = {

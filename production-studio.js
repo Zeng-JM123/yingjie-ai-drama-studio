@@ -18,7 +18,7 @@
     const previous = projectMetadata.productionStudio || {};
     const canvas = previous.canvas || {};
     projectMetadata.productionStudio = {
-      version: 1,
+      version: 2,
       mode: ['series', 'single', 'comic', 'realistic'].includes(previous.mode) ? previous.mode : 'series',
       source: previous.source && typeof previous.source === 'object' ? previous.source : { text: '', fileName: '', analysis: null },
       canvas: {
@@ -26,7 +26,9 @@
         seeded: Boolean(canvas.seeded),
         nodes: Array.isArray(canvas.nodes) ? canvas.nodes : []
       },
-      assets: Array.isArray(previous.assets) ? previous.assets : []
+      assets: Array.isArray(previous.assets) ? previous.assets : [],
+      lastBuild: previous.lastBuild && typeof previous.lastBuild === 'object' ? previous.lastBuild : null,
+      builds: Array.isArray(previous.builds) ? previous.builds.slice(0, 20) : []
     };
     return projectMetadata.productionStudio;
   }
@@ -66,6 +68,11 @@
     for (const match of text.matchAll(/(?:主角|主人公|名叫|叫做|饰演)\s*([\u4e00-\u9fa5]{2,5})/g)) {
       if (!excludedNames.has(match[1])) names.add(match[1]);
     }
+    for (const match of text.matchAll(/((?:[\u4e00-\u9fa5]{2,6}\s*[、，,]\s*){1,10}[\u4e00-\u9fa5]{2,6})(?=[一二三四五六七八九十两\d]*个?人)/g)) {
+      match[1].split(/[、，,]/).map(name => name.trim().replace(/[一二三四五六七八九十两\d]+个?$/, '')).filter(Boolean).forEach(name => {
+        if (!excludedNames.has(name)) names.add(name);
+      });
+    }
     Object.values(characters).forEach(character => {
       if (character.name && text.includes(character.name)) names.add(character.name);
     });
@@ -81,21 +88,36 @@
       sceneNames.push(match[1]);
     }
     const uniqueScenes = [...new Set(sceneNames)].slice(0, 12);
+    const inferredScene = [
+      [/麻将|牌局|棋牌/, '麻将桌旁'],
+      [/电台|直播|播音/, '电台直播间'],
+      [/学校|教室|校园/, '校园教室'],
+      [/医院|病房|急诊/, '医院走廊'],
+      [/公司|办公室|会议/, '公司会议室'],
+      [/厨房|做饭|餐厅/, '家庭厨房'],
+      [/法庭|律师|合约/, '律师事务所'],
+      [/仓库|码头/, '废弃仓库']
+    ].find(([pattern]) => pattern.test(text))?.[1];
+    if (!uniqueScenes.length && inferredScene) uniqueScenes.push(inferredScene);
     if (!uniqueScenes.length) uniqueScenes.push('核心故事场景');
 
-    const dialogueCount = lines.filter(line => !sceneHeadingPattern.test(line) && dialoguePattern.test(line)).length;
+    const dialogueLines = lines.filter(line => !sceneHeadingPattern.test(line) && dialoguePattern.test(line));
+    const dialogueCount = dialogueLines.length;
     const titleMatch = text.match(/《([^》]{2,30})》/) || text.match(/^(?:标题|剧名)\s*[：:]\s*(.{2,30})$/m);
     const storyLine = lines.find(line => !/^《[^》]+》$/.test(line) && !sceneHeadingPattern.test(line) && !dialoguePattern.test(line));
     const firstSentence = storyLine || (text.match(/[^。！？!?\n]{8,160}[。！？!?]?/) || [cleanText(text, 150)])[0];
     const premise = cleanText(firstSentence || $('#briefInput')?.value || DEFAULT_SEASON_PREMISE, 260);
     const protagonist = [...names][0] || '主角';
     const style = mode === 'comic' ? 'AI 漫剧' : mode === 'realistic' ? 'AI 仿真人剧' : '竖屏短剧';
+    const inferredTitle = /麻将|牌局/.test(text) ? `${protagonist}的牌局` : `${protagonist}的故事`;
     return {
-      title: cleanText(titleMatch?.[1] || `${protagonist}的故事`, 30),
+      title: cleanText(titleMatch?.[1] || inferredTitle, 30),
       premise,
       protagonist,
       characters: [...names].slice(0, 12),
       scenes: uniqueScenes,
+      dialogueLines: dialogueLines.slice(0, 12),
+      storyLines: lines.filter(line => !sceneHeadingPattern.test(line) && !dialoguePattern.test(line)).slice(0, 16),
       dialogueCount,
       sourceLength: text.length,
       lineCount: lines.length,
@@ -183,6 +205,95 @@
       acts,
       episodes
     };
+  }
+
+  function createEpisodeProductionData(episode, analysis) {
+    const cast = analysis.characters?.length ? analysis.characters : [analysis.protagonist || '主角'];
+    const protagonist = cast[0];
+    const partner = cast[1] || '关键关系人';
+    const challenger = cast[2] || partner;
+    const observer = cast[3] || protagonist;
+    const scene = analysis.scenes?.[(Math.max(1, Number(episode?.act) || 1) - 1) % analysis.scenes.length] || '核心故事场景';
+    const episodeCode = `EP${String(episode?.number || 1).padStart(2, '0')}`;
+    const episodeTitle = episode?.title || analysis.title;
+    const premise = cleanText(analysis.premise, 130);
+    const dialogue = analysis.dialogueLines?.[0] || `${protagonist}：这件事没有表面看起来那么简单。`;
+    const visualStyle = analysis.mode === 'comic'
+      ? '竖屏动态漫画，清晰线稿，稳定角色配色，分格运动明确'
+      : analysis.mode === 'realistic'
+        ? '竖屏仿真人短剧，真实皮肤质感，自然表演，稳定演员面部'
+        : '竖屏短剧，电影级光影，角色造型连续，动作可执行';
+    const coreAction = cleanText(analysis.storyLines?.[0] || analysis.premise, 92);
+    const shotSpecs = [
+      {
+        title: `${episodeTitle} · 场景建立`, size: '全景 WS', movement: '缓慢推进', duration: '4.0', emotion: '建立、期待',
+        caption: `${scene}被完整建立，${cast.join('、')}进入本集行动。`,
+        note: '环境声先行，人物在第三秒进入视觉重心。'
+      },
+      {
+        title: `${protagonist}进入行动`, size: '中景 MS', movement: '跟拍', duration: '4.6', emotion: '主动、专注',
+        caption: `${protagonist}率先推进「${coreAction}」，本集目标变得明确。`,
+        note: dialogue
+      },
+      {
+        title: `${partner}给出反应`, size: '近景 MCU', movement: '轻微横移', duration: '3.8', emotion: '试探、克制',
+        caption: `${partner}的反应暴露了关系张力，也给出新的信息。`,
+        note: `${partner}的台词与上一镜动作直接衔接。`
+      },
+      {
+        title: '关键动作发生', size: '特写 CU', movement: '快速推近', duration: '3.2', emotion: '意外、警觉',
+        caption: `一个与「${premise}」直接相关的细节改变局面。`,
+        note: '关键物件和手部动作必须清晰可见。'
+      },
+      {
+        title: `${challenger}制造阻力`, size: '中近景 MCU', movement: '手持微晃', duration: '4.4', emotion: '对抗、升级',
+        caption: `${challenger}打断原计划，人物立场第一次正面碰撞。`,
+        note: '保持人物轴线，冲突台词不要遮盖动作信息。'
+      },
+      {
+        title: `${observer}看见破绽`, size: '特写 CU', movement: '静置', duration: '3.5', emotion: '发现、迟疑',
+        caption: `${observer}从细节里看见破绽，观众先于其他角色获得答案。`,
+        note: '留出半秒无对白反应，强化信息落点。'
+      },
+      {
+        title: '局面反转', size: '全景 WS', movement: '环绕', duration: '5.2', emotion: '失控、反转',
+        caption: `所有人物关系重新排列，${protagonist}不得不改变下一步行动。`,
+        note: '环境声与音乐同时升级，最后一秒突然抽空。'
+      },
+      {
+        title: `${episodeTitle} · 结尾钩子`, size: '近景 MCU', movement: '缓慢推进', duration: '4.3', emotion: '悬念、未决',
+        caption: episode?.hook || `${protagonist}刚得到答案，却出现一条相反的新证据。`,
+        note: episode?.handoff || '最后动作保持未完成状态，直接交接下一集。'
+      }
+    ];
+    const classes = ['shot-one', 'shot-two', 'shot-three', 'shot-four', 'shot-five', 'shot-six', 'shot-two', 'shot-four'];
+    const shotMap = Object.fromEntries(shotSpecs.map((spec, index) => {
+      const key = String(index + 1);
+      const prompt = `${scene}，${spec.caption}。${visualStyle}，${spec.size}，${spec.movement}，情绪：${spec.emotion}。围绕故事「${premise}」，保持${cast.join('、')}的身份、服装、站位和关键道具连续。`;
+      return [key, { id: String(index + 1).padStart(2, '0'), cls: classes[index], ...spec, prompt }];
+    }));
+    const actDuration = Math.round((episode?.duration || 120) / 3);
+    const beatMap = {
+      act1: {
+        code: `${episodeCode} · SCENE 01 · ${scene}`,
+        title: `“${episodeTitle}，从一个明确行动开始。”`,
+        body: `${cast.join('、')}围绕「${coreAction}」进入同一场戏；先建立目标、关系和观众必须追问的问题。`,
+        tension: '58%', time: `00:00 — 00:${String(actDuration).padStart(2, '0')}`
+      },
+      act2: {
+        code: `${episodeCode} · SCENE 02 · ${scene}`,
+        title: `“计划被打断，人物必须重新站队。”`,
+        body: `${challenger}制造阻力，${protagonist}和${partner}交换信息；关键动作让原本的解释失效。`,
+        tension: '82%', time: `00:${String(actDuration).padStart(2, '0')} — 01:${String(Math.max(1, actDuration - 1)).padStart(2, '0')}`
+      },
+      act3: {
+        code: `${episodeCode} · SCENE 03 · ${scene}`,
+        title: `“答案出现，但代价比答案更大。”`,
+        body: `${episode?.story || premise} 结尾落在「${episode?.hook || '新的证据出现'}」，并保留动作和情绪给下一集。`,
+        tension: '96%', time: `01:${String(Math.max(1, actDuration - 1)).padStart(2, '0')} — 02:00`
+      }
+    };
+    return { episodeCode, episodeTitle, beats: beatMap, shots: shotMap };
   }
 
   function assetFingerprint(asset) {
@@ -741,18 +852,68 @@
     } else complete('');
   }
 
-  function addDetectedCharacters(analysis) {
-    analysis.characters.forEach(name => {
-      const existing = Object.entries(characters).find(([, character]) => character.name === name);
-      if (existing) return;
-      const id = makeId('source', name);
-      characters[id] = {
-        code: `C-${String(Object.keys(characters).length + 1).padStart(2, '0')}`,
-        name, en: 'SOURCE CHARACTER', role: '从原稿识别的角色 · 待确认故事职责', image: './assets/character-shen-qingyan.png',
-        alt: `${name} 的角色概念草案`, tone: '待分析 / 待确认', voice: '待选择 · 需授权', anchor: '待从原稿锁定视觉记忆点', look: '概念造型', draft: true
+  function reconcileDetectedCharacters(analysis) {
+    const previousEntries = Object.entries(characters);
+    const nextCharacters = {};
+    const tones = ['主动 / 敏锐', '克制 / 观察', '直接 / 对抗', '沉稳 / 调停'];
+    analysis.characters.forEach((name, index) => {
+      const existing = previousEntries.find(([, character]) => character.name === name);
+      const id = existing?.[0] || makeId('source', name);
+      const previous = existing?.[1] || {};
+      nextCharacters[id] = {
+        code: `C-${String(index + 1).padStart(2, '0')}`,
+        name,
+        en: previous.en || 'SOURCE CHARACTER',
+        role: index === 0 ? `核心主角 · 推动《${analysis.title}》主要行动` : `主要角色 · 与${analysis.protagonist}形成第 ${index + 1} 组关系动力`,
+        image: previous.image || '',
+        alt: `${name} 的角色概念草案`,
+        tone: previous.tone && !previous.tone.includes('待') ? previous.tone : tones[index % tones.length],
+        voice: previous.voice && !previous.voice.includes('待') ? previous.voice : '待选择 · 需授权',
+        anchor: previous.anchor && !previous.anchor.includes('待') ? previous.anchor : `待锁定 ${name} 的服装、发型与关键道具`,
+        look: previous.look || '概念造型',
+        draft: true
       };
     });
+    Object.keys(characters).forEach(id => delete characters[id]);
+    Object.assign(characters, nextCharacters);
+    selectedCharacter = Object.keys(characters)[0];
     renderCharacterRail();
+  }
+
+  function applyEpisodeProduction(episode, analysis, { render = true } = {}) {
+    const production = createEpisodeProductionData(episode, analysis);
+    Object.keys(beats).forEach(key => delete beats[key]);
+    Object.assign(beats, production.beats);
+    Object.keys(shots).forEach(key => delete shots[key]);
+    Object.assign(shots, production.shots);
+    selectedShot = '1';
+    projectMetadata.preview = {};
+    projectMetadata.currentEpisodeProduction = {
+      episode: Number(episode?.number) || 1,
+      title: production.episodeTitle,
+      generatedAt: new Date().toISOString(),
+      sourceBuildId: productionState().lastBuild?.id || null
+    };
+    projectMetadata.reviewPassed = false;
+    projectMetadata.deliveryGatePassed = false;
+    const planState = typeof getProduction === 'function' ? getProduction() : null;
+    if (planState) {
+      planState.status = 'ready';
+      planState.planReady = true;
+      planState.plannedShots = Object.keys(shots).length;
+      planState.targetShots = Math.max(8, planState.targetShots || 8);
+      planState.version = (Number(planState.version) || 0) + 1;
+    }
+    if (render) {
+      renderShotGrid();
+      renderBeat($('.beat-tab.active')?.dataset.act || 'act1');
+      updateShotCount();
+      selectShot('1');
+      if (selectedCharacter && characters[selectedCharacter]) selectCharacter(selectedCharacter, true);
+      if (typeof renderProductionState === 'function') renderProductionState();
+      if (typeof hydratePreviewState === 'function') hydratePreviewState();
+    }
+    return production;
   }
 
   function addAnalysisNodes(analysis) {
@@ -766,26 +927,92 @@
     arrangeCanvas();
   }
 
+  function buildProductionProject(source, options = {}) {
+    source = String(source || '').trim();
+    if (!source) return null;
+    const state = productionState();
+    const analysis = analyzeSourceText(source, state.mode);
+    const build = {
+      id: `build-${Date.now()}`,
+      title: analysis.title,
+      mode: analysis.mode,
+      sourceLength: analysis.sourceLength,
+      characterCount: analysis.characters.length,
+      sceneCount: analysis.scenes.length,
+      episodeCount: analysis.episodeTarget,
+      createdAt: new Date().toISOString()
+    };
+    state.source.text = source.slice(0, 40_000);
+    state.source.analysis = analysis;
+    state.lastBuild = build;
+    state.builds = [build, ...state.builds.filter(item => item.id !== build.id)].slice(0, 20);
+    $('#briefInput').value = analysis.premise;
+    if ($('#sourceMaterial') && options.source !== 'file') $('#sourceMaterial').value = source;
+    reconcileDetectedCharacters(analysis);
+    const retainedCharacterIds = new Set(Object.keys(characters));
+    state.assets = state.assets.filter(asset => asset.origin === '用户上传'
+      || asset.type === 'storyboard'
+      || asset.id === 'scene-world-main'
+      || (['character', 'audio'].includes(asset.type) && retainedCharacterIds.has(String(asset.sourceId))));
+    state.canvas.nodes = [];
+    state.canvas.seeded = false;
+    projectMetadata.title = analysis.title;
+    projectMetadata.worldRules = {
+      time: /深夜|午夜|夜晚|雨夜/.test(source) ? '夜景 · 依原稿时间连续' : '依照分集剧情时间连续',
+      palette: analysis.mode === 'comic' ? '角色固定配色 + 高辨识轮廓' : analysis.mode === 'realistic' ? '自然肤色 + 场景主光连续' : '剧情主色 + 冲突强调色',
+      constraints: `保持${analysis.characters.join('、')}的身份、服装、站位和关键道具连续；场景以${analysis.scenes.join('、')}为准。`
+    };
+    projectMetadata.seasonPlan = createAdaptiveSeasonPlan(analysis);
+    selectedSeasonEpisode = Math.max(1, Math.min(Number(options.episodeNumber) || 1, projectMetadata.seasonPlan.episodes.length));
+    seasonFilter = 'all';
+    const episode = projectMetadata.seasonPlan.episodes.find(item => item.number === selectedSeasonEpisode) || projectMetadata.seasonPlan.episodes[0];
+    applyEpisodeProduction(episode, analysis, { render: false });
+    syncCoreAssets({ render: false });
+    seedCanvas();
+    Object.keys(shots).forEach(id => syncShotAsset(id, { render: false }));
+    addAnalysisNodes(analysis);
+    renderSeasonPlan();
+    renderWorldRules(projectMetadata.worldRules);
+    renderShotGrid();
+    renderBeat($('.beat-tab.active')?.dataset.act || 'act1');
+    updateShotCount();
+    selectShot('1');
+    if (selectedCharacter && characters[selectedCharacter]) selectCharacter(selectedCharacter, true);
+    renderAnalysis();
+    renderCanvas();
+    renderAssets();
+    if (typeof renderProductionState === 'function') renderProductionState();
+    if (typeof hydratePreviewState === 'function') hydratePreviewState();
+    if (typeof renderProjectIdentity === 'function') renderProjectIdentity(analysis.title, selectedSeasonEpisode);
+    setText('.brief-status', `✓ ${build.characterCount} 人物 · ${build.sceneCount} 场景 · 8 分镜已实时更新`);
+    scheduleProjectSave(0);
+    return { ...build, analysis, episode, shotCount: Object.keys(shots).length, assetCount: state.assets.length };
+  }
+
+  function loadEpisodeProduction(number) {
+    const state = productionState();
+    const analysis = state.source.analysis || analyzeSourceText(state.source.text || $('#briefInput')?.value || DEFAULT_SEASON_PREMISE, state.mode);
+    const plan = projectMetadata.seasonPlan || createAdaptiveSeasonPlan(analysis);
+    const episode = plan.episodes.find(item => item.number === Number(number)) || plan.episodes[0];
+    if (!episode) return null;
+    selectedSeasonEpisode = episode.number;
+    applyEpisodeProduction(episode, analysis);
+    syncCoreAssets({ render: false });
+    Object.keys(shots).forEach(id => syncShotAsset(id, { render: false }));
+    renderAssets();
+    renderCanvas();
+    if (typeof renderProjectIdentity === 'function') renderProjectIdentity(analysis.title, episode.number);
+    scheduleProjectSave(0);
+    return { episode, shotCount: Object.keys(shots).length };
+  }
+
   function analyzeAndBuildProduction() {
     const source = $('#sourceMaterial')?.value.trim() || $('#briefInput')?.value.trim();
     if (!source) return notify('请先粘贴原稿或填写创作指令。');
-    const state = productionState();
-    const analysis = analyzeSourceText(source, state.mode);
-    state.source.text = source.slice(0, 40_000);
-    state.source.analysis = analysis;
-    $('#briefInput').value = analysis.premise;
-    addDetectedCharacters(analysis);
-    projectMetadata.seasonPlan = createAdaptiveSeasonPlan(analysis);
-    selectedSeasonEpisode = 1;
-    seasonFilter = 'all';
-    renderSeasonPlan();
-    syncCoreAssets({ render: false });
-    seedCanvas();
-    addAnalysisNodes(analysis);
-    renderAssets(); renderAnalysis();
-    addFeed('制作编排器', `已从原稿识别 ${analysis.characters.length} 个人物、${analysis.scenes.length} 个场景，并建立 60 集依赖图。`, 'purple');
-    scheduleProjectSave();
+    const result = buildProductionProject(source, { source: 'intake' });
+    addFeed('制作编排器', `已从原稿识别 ${result.characterCount} 个人物、${result.sceneCount} 个场景，生成 ${result.shotCount} 个当前集分镜，并建立 ${result.episodeCount} 集依赖图。`, 'purple');
     notify('原稿已转为生产工程：故事总控、画布节点和素材引用已经联动。');
+    return result;
   }
 
   function renderAnalysis() {
@@ -939,6 +1166,9 @@
     hydrate,
     analyzeSource: analyzeSourceText,
     createSeasonPlan: input => createAdaptiveSeasonPlan(typeof input === 'string' ? analyzeSourceText(input) : input),
+    createEpisodeProduction: (episode, input) => createEpisodeProductionData(episode, typeof input === 'string' ? analyzeSourceText(input) : input),
+    buildProject: buildProductionProject,
+    loadEpisode: loadEpisodeProduction,
     syncCoreAssets,
     syncCharacter: syncCharacterAsset,
     syncShot: syncShotAsset,
