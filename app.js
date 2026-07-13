@@ -213,7 +213,7 @@ function createSeasonPlan(premise = DEFAULT_SEASON_PREMISE) {
 
 function ensureSeasonPlan() {
   const plan = projectMetadata.seasonPlan;
-  if (!plan || !Array.isArray(plan.episodes) || plan.episodes.length !== 60) {
+  if (!plan || !Array.isArray(plan.episodes) || !plan.episodes.length) {
     projectMetadata.seasonPlan = createSeasonPlan($('#briefInput')?.value || DEFAULT_SEASON_PREMISE);
   }
   return projectMetadata.seasonPlan;
@@ -229,6 +229,8 @@ function renderSeasonPlan() {
   if (!episodeGrid) return;
   setText('#seasonPremise', plan.premise);
   setText('#seasonEpisodeCount', String(plan.episodeCount || plan.episodes.length));
+  setText('#seasonEpisodeDuration', `${String(plan.episodeDurationMinutes || 2).padStart(2, '0')}:00`);
+  setText('#seasonTotalMinutes', `${plan.totalMinutes || plan.episodes.length * (plan.episodeDurationMinutes || 2)}m`);
   setText('#seasonContinuityScore', String(plan.continuityScore || 94));
 
   const arcs = $('#seasonArcs');
@@ -266,8 +268,13 @@ function renderSeasonPlan() {
     episodeGrid.append(cell);
   });
 
-  $$('#episodeFilters button').forEach(button => button.classList.toggle('active', button.dataset.actFilter === seasonFilter));
-  const actLabel = seasonFilter === 'all' ? '全季 60 集' : (plan.acts || [])[Number(seasonFilter) - 1]?.title || '当前章节';
+  $$('#episodeFilters button').forEach(button => {
+    const act = button.dataset.actFilter;
+    button.classList.toggle('active', act === seasonFilter);
+    button.hidden = act !== 'all' && Number(act) > (plan.acts || []).length;
+    if (act === 'all') button.textContent = `全部 ${plan.episodes.length}`;
+  });
+  const actLabel = seasonFilter === 'all' ? `全季 ${plan.episodes.length} 集` : (plan.acts || [])[Number(seasonFilter) - 1]?.title || '当前章节';
   setText('#episodeBoardLabel', `${actLabel} · 每集结尾都有下一集的理由`);
   renderSeasonInspector(seasonEpisodeByNumber(selectedSeasonEpisode) || plan.episodes[0]);
 }
@@ -578,6 +585,7 @@ function passQualityGate() {
   if (continuityMeter) continuityMeter.style.setProperty('--progress', '96%');
   renderQualityState();
   renderProductionState();
+  window.YingjieProduction?.syncReview();
   addFeed('审片助手', '已修复时间与口型低风险项，8 项交付前门禁全部通过。', 'blue');
   notify('质量门禁已通过：8 / 8 项合格，可以进入交付检查。');
   scheduleProjectSave();
@@ -624,6 +632,7 @@ function syncShotFromFields() {
     setText('small', `${shot.size.replace(/ .*/, '')} · ${shot.movement}`, card);
     setText('em', `${shot.duration}s`, card);
   }
+  window.YingjieProduction?.syncShot(selectedShot);
   scheduleProjectSave();
 }
 
@@ -804,6 +813,7 @@ function applyStudio(studio) {
   renderSeasonPlan();
   hydratePreviewState();
   updateShotCount();
+  window.YingjieProduction?.hydrate();
 }
 
 async function loadProject() {
@@ -891,7 +901,7 @@ $('#generateSeasonPlan').addEventListener('click', event => {
   button.disabled = true;
   button.innerHTML = '<span>✦</span> 正在编排 60 集…';
   setTimeout(() => {
-    projectMetadata.seasonPlan = createSeasonPlan(brief);
+    projectMetadata.seasonPlan = window.YingjieProduction?.createSeasonPlan(brief) || createSeasonPlan(brief);
     selectedSeasonEpisode = 1;
     seasonFilter = 'all';
     renderSeasonPlan();
@@ -1003,6 +1013,7 @@ function runFullProductionPlan() {
       if (launchButton) launchButton.innerHTML = '<span>✓</span> 全季计划已就绪';
       if (planButton) planButton.innerHTML = '<span>↻</span> 更新全季生产计划';
       fullProductionRunning = false;
+      window.YingjieProduction?.syncCoreAssets();
       addFeed('制作编排器', '60 集生产路线已生成；EP01 的 24 镜、声音脚本与质量门禁已先行联动。', 'purple');
       notify('全季生产计划已就绪：60 集故事交接已锁定，当前只编排 EP01，不会自动消耗全季额度。');
       scheduleProjectSave();
@@ -1102,6 +1113,7 @@ $('#generateCharacter').addEventListener('click', event => {
     button.innerHTML = '<span>✦</span> 重新生成 3 张预览';
     notify(`${characters[selectedCharacter].name} 的三视图预览已更新，可在镜头生成前选定造型。`);
     addFeed('视觉设定师', `${characters[selectedCharacter].name} 的三视图和造型约束已写入项目圣经。`, 'purple');
+    window.YingjieProduction?.syncCharacter(selectedCharacter);
   }, 1000);
 });
 function openWorldModal() {
@@ -1126,6 +1138,7 @@ $('#saveWorld')?.addEventListener('click', () => {
   if (!rules.time || !rules.palette || !rules.constraints) return notify('请补全时间、色彩和禁用元素后再保存。');
   projectMetadata.worldRules = rules;
   renderWorldRules(rules);
+  window.YingjieProduction?.syncWorld();
   closeWorldModal();
   addFeed('视觉设定师', '已更新世界规则，并同步到后续未锁定镜头。', 'purple');
   notify('世界规则已保存；后续生成会继承新的时间、色彩和禁用约束。');
@@ -1162,6 +1175,7 @@ $('#createCharacter').addEventListener('click', () => {
     closeModal($('#characterModal'));
     renderCharacterRail();
     selectCharacter(selectedCharacter, true);
+    window.YingjieProduction?.syncCharacter(selectedCharacter);
     addFeed('视觉设定师', `已更新「${name}」的身份、故事职责和视觉锚点。`, 'purple');
     notify(`「${name}」的角色卡已保存并同步到后续镜头。`);
     scheduleProjectSave();
@@ -1175,6 +1189,7 @@ $('#createCharacter').addEventListener('click', () => {
   closeModal($('#characterModal'));
   renderCharacterRail();
   selectCharacter(id, true);
+  window.YingjieProduction?.syncCharacter(id);
   addFeed('视觉设定师', `已创建 ${name} 的角色蓝图，正在等待 AI 预览生成。`, 'purple');
   notify(`「${name}」已进入角色资产库；可继续生成正式三视图。`);
   scheduleProjectSave();
@@ -1198,8 +1213,10 @@ $('#splitShot').addEventListener('click', () => {
 $('#deleteShot').addEventListener('click', () => {
   const card = $(`.shot-card[data-shot="${selectedShot}"]`);
   if ($$('.shot-card').length <= 1) return notify('至少保留一个镜头');
+  const archivedShotId = selectedShot;
   card.remove();
   delete shots[selectedShot];
+  window.YingjieProduction?.archiveShot(archivedShotId);
   const nextCard = $('.shot-card');
   selectShot(nextCard.dataset.shot);
   updateShotCount();
@@ -1217,6 +1234,7 @@ $('#addShot').addEventListener('click', () => {
   $('#shotGrid').append(card);
   selectShot(newId);
   updateShotCount();
+  window.YingjieProduction?.syncShot(String(newId));
   notify('已添加空白镜头；请补足角色、情绪和声音，AI 会继承上下文生成。');
   scheduleProjectSave();
 });
@@ -1345,12 +1363,16 @@ function renderPreviewState() {
 }
 
 function setAnimaticPreview(shot) {
+  const generationContext = window.YingjieProduction?.buildShotGenerationContext(String(selectedShot), shot.prompt) || { assetIds: [], assetVersions: [] };
   projectMetadata.preview = {
     mode: 'animatic', shotId: shot.id, duration: 167,
+    referenceAssetIds: generationContext.assetIds,
+    assetVersions: generationContext.assetVersions,
     status: `动态分镜预演 · 镜头 ${shot.id} 已就绪（尚未生成 Seedance 成片）`
   };
   renderPreviewState();
   updatePlayerPosition(0);
+  window.YingjieProduction?.syncVideo(projectMetadata.preview);
 }
 
 async function requestVideoGateway(path, options = {}) {
@@ -1377,9 +1399,10 @@ async function pollSeedancePreview(taskId, attempts = 0) {
   try {
     const task = await requestVideoGateway(`/v1/video-jobs/${encodeURIComponent(taskId)}`);
     if (task.status === 'succeeded' && task.videoUrl) {
-      projectMetadata.preview = { mode: 'video', videoUrl: task.videoUrl, taskId, shotId: task.shotId || String(selectedShot), duration: Number(task.duration) || 5, status: 'Seedance 成片已就绪 · 点击播放或全屏审阅' };
+      projectMetadata.preview = { mode: 'video', videoUrl: task.videoUrl, taskId, shotId: task.shotId || String(selectedShot), duration: Number(task.duration) || 5, referenceAssetIds: projectMetadata.preview?.referenceAssetIds || [], assetVersions: projectMetadata.preview?.assetVersions || [], status: 'Seedance 成片已就绪 · 点击播放或全屏审阅' };
       renderPreviewState();
       updatePlayerPosition(0);
+      window.YingjieProduction?.syncVideo(projectMetadata.preview);
       scheduleProjectSave();
       notify('Seedance 成片已就绪，现在可以在样片区直接播放。');
       return;
@@ -1387,16 +1410,19 @@ async function pollSeedancePreview(taskId, attempts = 0) {
     if (['failed', 'cancelled', 'canceled'].includes(task.status)) {
       projectMetadata.preview = { ...projectMetadata.preview, status: `Seedance 生成失败：${task.error || task.status}` };
       renderPreviewState();
+      window.YingjieProduction?.syncVideo(projectMetadata.preview);
       scheduleProjectSave();
       return notify('视频生成未完成；镜头提示词和动态预演仍已保留。');
     }
     projectMetadata.preview = { ...projectMetadata.preview, taskId, status: `Seedance ${task.status || '排队中'} · 正在等待成片` };
     renderPreviewState();
+    window.YingjieProduction?.syncVideo(projectMetadata.preview);
     previewPollAttempts = attempts + 1;
     previewPollTimer = setTimeout(() => pollSeedancePreview(taskId, previewPollAttempts), 5_000);
   } catch (error) {
     projectMetadata.preview = { ...projectMetadata.preview, taskId, status: error.message || '视频任务状态暂时不可读取' };
     renderPreviewState();
+    window.YingjieProduction?.syncVideo(projectMetadata.preview);
     scheduleProjectSave();
   }
 }
@@ -1410,13 +1436,15 @@ function hydratePreviewState() {
 async function trySeedancePreview() {
   if (!videoGateway) return false;
   const shot = shots[selectedShot];
+  const generationContext = window.YingjieProduction?.buildShotGenerationContext(String(selectedShot), shot.prompt) || { prompt: shot.prompt, assetIds: [], assetVersions: [] };
   const task = await requestVideoGateway('/v1/video-jobs', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ projectId: studioProjectId, shotId: String(selectedShot), prompt: shot.prompt, ratio: '9:16', duration: nearestSeedanceDuration(shot.duration), resolution: '720p', generateAudio: false })
+    body: JSON.stringify({ projectId: studioProjectId, shotId: String(selectedShot), prompt: generationContext.prompt, ratio: '9:16', duration: nearestSeedanceDuration(shot.duration), resolution: '720p', generateAudio: false })
   });
   if (!task.id) throw new Error(task.error || '视频任务未返回任务 ID');
-  projectMetadata.preview = { mode: 'seedance', taskId: task.id, shotId: shot.id, duration: nearestSeedanceDuration(shot.duration), status: `Seedance ${task.status || '已排队'} · 镜头 ${shot.id} 正在生成` };
+  projectMetadata.preview = { mode: 'seedance', taskId: task.id, shotId: shot.id, duration: nearestSeedanceDuration(shot.duration), referenceAssetIds: generationContext.assetIds, assetVersions: generationContext.assetVersions, status: `Seedance ${task.status || '已排队'} · 镜头 ${shot.id} 正在生成` };
   renderPreviewState();
+  window.YingjieProduction?.syncVideo(projectMetadata.preview);
   scheduleProjectSave();
   void pollSeedancePreview(task.id);
   notify(`已将镜头 ${shot.id} 提交到 Seedance 视频生成队列。`);
@@ -1498,6 +1526,7 @@ function exportProject() {
     characters: Object.values(characters).map(({ name, role, anchor, look }) => ({ name, role, anchor, look })),
     shots: Object.values(shots),
     season: ensureSeasonPlan(),
+    productionStudio: window.YingjieProduction?.exportState(),
     production: { ...production, reviewPassed: Boolean(projectMetadata.reviewPassed), deliveryGatePassed: Boolean(projectMetadata.deliveryGatePassed), qualityScore: projectMetadata.reviewPassed ? 97 : 92 },
     exportedAt: new Date().toISOString(), status: projectMetadata.deliveryGatePassed ? 'delivery-ready' : production.planReady ? 'review-ready' : 'creative-ready'
   };
@@ -1536,7 +1565,7 @@ const observer = new IntersectionObserver(entries => {
   const target = id === 'dashboard' ? 'dashboard' : id;
   $$('.nav-item').forEach(link => link.classList.toggle('active', link.dataset.target === target));
 }, { threshold: .35 });
-['dashboard', 'season', 'cast', 'storyboard', 'automation', 'dailies', 'delivery'].forEach(id => observer.observe(document.getElementById(id)));
+['dashboard', 'season', 'canvas', 'assets', 'cast', 'storyboard', 'automation', 'dailies', 'delivery'].forEach(id => observer.observe(document.getElementById(id)));
 
 populateShotEditor(shots[1]);
 updateShotCount();
@@ -1544,4 +1573,5 @@ renderFeed();
 renderSeasonPlan();
 renderQualityState();
 renderProductionState();
+window.YingjieProduction?.init();
 loadProject();
