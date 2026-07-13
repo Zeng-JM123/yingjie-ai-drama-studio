@@ -986,7 +986,7 @@
     if (typeof renderProjectIdentity === 'function') renderProjectIdentity(analysis.title, selectedSeasonEpisode);
     setText('.brief-status', `✓ ${build.characterCount} 人物 · ${build.sceneCount} 场景 · 8 分镜已实时更新`);
     scheduleProjectSave(0);
-    return { ...build, analysis, episode, shotCount: Object.keys(shots).length, assetCount: state.assets.length };
+    return { ...build, analysis, episode, shotCount: Object.keys(shots).length, assetCount: productionState().assets.length };
   }
 
   function loadEpisodeProduction(number) {
