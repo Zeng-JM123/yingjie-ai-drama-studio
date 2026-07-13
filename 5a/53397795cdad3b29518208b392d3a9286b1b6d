@@ -1,0 +1,31 @@
+README.md
+  s_8741e01dfbacd5::t_ee00c5b7ba9d43 31-32
+app.js
+  s_8741e01dfbacd5::t_7125eb63871d34 316-324,339-340,348-352,393,668-672,818-819,836,877-882,964-965,967,975-988,1002,1559,1571
+index.html
+  s_8741e01dfbacd5::t_be60483b715caa 11,13,51,326-327
+production-studio.js
+  s_8741e01dfbacd5::t_b4afe847c2d704 21,29-31,71-75,91-101,104-105,112,114,119-120,210-298,855-874,877-879,883-918,930-932,935-944,947-948,950-964,966,968-969,972,974-1013,1015,1169-1171
+styles.css
+  s_8741e01dfbacd5::t_dd0aef0c5167dd 66-67
+tests/production-core.test.mjs
+  s_8741e01dfbacd5::t_b4510f3fddaa53 86-104
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "5a53397795cdad3b29518208b392d3a9286b1b6d",
+  "prompts": {},
+  "sessions": {
+    "s_8741e01dfbacd5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f59d5-ce80-7690-ba94-ce0e04201bc3",
+        "model": "unknown"
+      },
+      "human_author": "zengjiaming <zengjiaming.alex@bytedance.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
