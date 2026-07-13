@@ -1,0 +1,21 @@
+index.html
+  s_8741e01dfbacd5::t_79b41dbee63296 326
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "fd60ba0edad4b12ef0bcd92c704e05071242be9b",
+  "prompts": {},
+  "sessions": {
+    "s_8741e01dfbacd5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f59d5-ce80-7690-ba94-ce0e04201bc3",
+        "model": "unknown"
+      },
+      "human_author": "zengjiaming <zengjiaming.alex@bytedance.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
