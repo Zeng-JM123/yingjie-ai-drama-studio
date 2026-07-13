@@ -1,0 +1,21 @@
+production-studio.js
+  s_8741e01dfbacd5::t_86fdbf7addd9bb 989
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "a9b3d615c8425c9f13ff6287cabbdb0f675786a8",
+  "prompts": {},
+  "sessions": {
+    "s_8741e01dfbacd5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f59d5-ce80-7690-ba94-ce0e04201bc3",
+        "model": "unknown"
+      },
+      "human_author": "zengjiaming <zengjiaming.alex@bytedance.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
