@@ -1,0 +1,27 @@
+README.md
+  s_8741e01dfbacd5::t_30293aa2bff602 14-16,33
+index.html
+  s_8741e01dfbacd5::t_39d98e7e0f1fe6 13,31-37,70-82,105,147-183,185,215,241,272,289,326
+production-studio.css
+  s_8741e01dfbacd5::t_6cadc3625aa5d7 1-142
+tests/production-store.test.mjs
+  s_8741e01dfbacd5::t_1d9785a05fde32 1-37
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "84f9518c7e06636731c7e3471368243c2f652b0f",
+  "prompts": {},
+  "sessions": {
+    "s_8741e01dfbacd5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f59d5-ce80-7690-ba94-ce0e04201bc3",
+        "model": "unknown"
+      },
+      "human_author": "zengjiaming <zengjiaming.alex@bytedance.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
