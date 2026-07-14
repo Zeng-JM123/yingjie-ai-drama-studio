@@ -27,6 +27,15 @@
 .analysis-metrics b { color: #48434a; font: 600 12px "DM Mono", monospace; }
 .analysis-metrics span { margin-top: 3px; color: #979087; font-size: 7px; }
 
+.brief-generation-controls { display: flex; align-items: flex-end; gap: 9px; margin-left: auto; }
+.ai-model-control { display: grid; min-width: 238px; gap: 4px; }
+.ai-model-control > span { color: #817a73; font: 700 7px "DM Mono", monospace; text-transform: uppercase; }
+.ai-model-control select { width: 100%; min-height: 32px; padding: 0 28px 0 9px; border: 1px solid #d9d2c8; border-radius: 4px; color: #4e4753; background: #fffdfa; font: 700 9px "Noto Serif SC", Georgia, serif; }
+.ai-model-control small { max-width: 330px; overflow: hidden; color: #8e877f; font-size: 7px; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
+.ai-model-control small.running { color: #765a9a; }
+.ai-model-control small.ready { color: #4f8660; }
+.ai-model-control small.error { color: #aa665c; }
+
 .production-canvas-section { background: #f4f1eb !important; }
 .canvas-toolbar { display: flex; align-items: center; gap: 6px; }
 .canvas-toolbar > span { min-width: 40px; color: #6e6862; text-align: center; font: 8px "DM Mono", monospace; }
@@ -118,6 +127,8 @@
 
 @media (max-width: 980px) {
   .production-intake { grid-template-columns: 1fr; }
+  .creative-brief .brief-footer { align-items: stretch !important; flex-direction: column; }
+  .brief-generation-controls { justify-content: space-between; width: 100%; margin-left: 0; }
   .canvas-workspace { grid-template-columns: 120px minmax(0, 1fr); }
   .asset-library-layout { grid-template-columns: 1fr; }
   .asset-inspector { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 0 14px; }
@@ -129,6 +140,10 @@
   .production-intake { margin: 0 18px 16px; padding: 16px; }
   .intake-input { grid-template-columns: 1fr; }.source-upload { min-height: 72px; }
   .intake-controls { align-items: stretch; flex-direction: column; }.intake-controls .generate-button { width: 100%; }
+  .brief-generation-controls { align-items: stretch; flex-direction: column; }
+  .ai-model-control { min-width: 0; }
+  .ai-model-control small { max-width: 100%; white-space: normal; }
+  .brief-generation-controls .generate-button { width: 100%; }
   .analysis-metrics { grid-template-columns: 1fr 1fr; }
   .canvas-toolbar { flex-wrap: wrap; justify-content: flex-end; }
   .canvas-workspace { display: block; min-height: 0; }

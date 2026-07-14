@@ -11,7 +11,8 @@
 ## 体验内容
 
 - 创作 Brief 输入与题材/时长/画幅标签（自动保存）
-- 原稿生产解析：识别人物、场景、对白和制作模式，并生成自适应的 60 集故事交接图
+- 方舟文本模型生产：用户可选 Seed 2.1 Turbo、Seed 2.1 Pro 或 Seed Evolving，生成故事分析、人物、场景、60 集规划和当前集分镜
+- 模型计费提示：下拉列表展示试用额度与输入/输出单价；也可明确选择不调用模型的本地规则草稿
 - 可拖动创作画布：故事、角色、场景、分镜和声音节点支持缩放、自动排布、源数据定位与素材化
 - 项目素材库：角色、场景、分镜、声音和视频统一检索，记录版本、锁定状态、来源及下游使用关系
 - 60 集 × 2 分钟的连续故事总控：五段故事弧、逐集钩子、人物状态与动画连续性锚点
@@ -26,13 +27,13 @@
 
 当前创作台按“从一个念头到 60 集连续短剧、单集生产计划与可审样片”的工作流测评为 **96 / 100**。完整维度、验收点和生产化补强建议见：[创作平台测评](./docs/创作平台测评.md)。
 
-前端仍可双击 `index.html` 查看离线预览；要保存项目数据，需同时启动下方的数据服务并在 `runtime-config.js` 配置其 HTTPS 地址。
+前端仍可双击 `index.html` 查看离线预览；离线状态只有在模型下拉中明确选择“本地规则草稿”后才能重新生成。要调用方舟模型并保存项目数据，需同时启动下方的数据服务并在 `runtime-config.js` 配置其 HTTPS 地址。
 
 默认的 GitHub Pages 预览没有配置服务端，因此项目快照会保存到当前浏览器的 `localStorage`，键名为 `yingjie:studio:<projectId>`；它不会跨浏览器或设备同步。配置 `studioApiBaseUrl` 后，页面会改为通过项目 API 将项目、角色、分镜、画布、素材版本和制作日志写入服务端 SQLite，数据库文件位置由 `DATABASE_PATH` 指定。
 
 ## 项目数据服务与数据库
 
-`video-service/` 现在同时提供项目数据 API。它使用 Node.js 内置 SQLite（Node **22.13+**），首次读取项目时会写入一份服务端种子数据；之后角色、分镜、Brief、标签、画布节点、素材版本、制作日志、审片状态和交付状态都会在用户操作后自动保存。Seedance 视频任务的项目/镜头归属和任务状态也会入库。
+`video-service/` 同时提供方舟文本模型代理、项目数据 API 和 Seedance 视频代理。它使用 Node.js 内置 SQLite（Node **22.13+**），首次读取项目时会写入一份服务端种子数据；之后角色、分镜、Brief、标签、模型请求来源、Token 用量、画布节点、素材版本、制作日志、审片状态和交付状态都会在用户操作后自动保存。Seedance 视频任务的项目/镜头归属和任务状态也会入库。
 
 数据库包含 `projects`、`characters`、`shots`、`activities`、`video_jobs` 五张表。项目写入以事务执行，并带 `revision` 乐观锁，避免两个编辑会话相互静默覆盖。
 
@@ -61,6 +62,8 @@ window.YINGJIE_CONFIG = {
 | `GET` | `/v1/projects/{projectId}/studio` | 读取项目完整快照；不存在时初始化种子项目 |
 | `PUT` | `/v1/projects/{projectId}/studio` | 原子保存项目、角色、分镜、日志与制作状态 |
 | `GET` | `/v1/projects/{projectId}/video-jobs` | 读取已提交视频任务的持久化记录 |
+| `GET` | `/v1/models` | 返回创作台支持的方舟文本模型、试用额度与参考单价 |
+| `POST` | `/v1/production/generate` | 使用所选方舟模型生成项目或单集分镜 JSON |
 
 容器部署务必为 `/data` 挂载平台的持久化卷；否则容器重建会丢失 SQLite 文件。公开多用户生产环境还需要在网关前接入登录态和项目级权限校验，CORS 本身不是认证机制。
 
@@ -82,14 +85,14 @@ window.YINGJIE_CONFIG = {
 .
 ├── index.html                 # 单页产品原型
 ├── styles.css                 # 视觉系统与响应式布局
-├── app.js                     # Agent 制作链交互模拟
+├── app.js                     # 模型选择、生产链交互与项目持久化
 ├── runtime-config.js           # 仅公开的工作台/视频网关地址配置（不含密钥）
 ├── docs/技术方案.md            # 平台生产级技术方案
 ├── docs/Seedance接入指南.md    # Seedance 视频服务部署与接口合同
-├── video-service/              # SQLite 项目服务与 Seedance 安全网关
+├── video-service/              # 方舟文本模型、SQLite 项目服务与 Seedance 安全网关
 └── .github/workflows/pages.yml # GitHub Pages 部署
 ```
 
 ## 说明
 
-当 `runtime-config.js` 配置好已部署的 `video-service` 后，页面会从服务端加载项目，并自动保存创作数据；镜头生成会真实创建视频任务并记录任务归属。模型密钥只可保存在该服务的私密环境变量中，绝不能提交到仓库或写入 GitHub Pages。
+当 `runtime-config.js` 配置好已部署的 `video-service` 后，页面会从服务端加载项目并自动保存创作数据；故事、人物、场景和分镜会调用所选方舟文本模型，镜头视频生成会创建 Seedance 任务。模型密钥只可保存在该服务的私密环境变量中，绝不能提交到仓库或写入 GitHub Pages。

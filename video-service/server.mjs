@@ -1,10 +1,11 @@
 import { createServer } from "node:http";
 import { resolve } from "node:path";
 import { createProjectStore } from "./store.mjs";
+import { generateProductionWithArk, modelCatalog } from "./production-service.mjs";
 
 const port = Number(process.env.PORT || 8787);
 const arkBaseUrl = "https://ark.cn-beijing.volces.com/api/v3";
-const maxRequestBytes = 32_000;
+const maxRequestBytes = 64_000;
 const maxProjectRequestBytes = 1_000_000;
 const databasePath = resolve(process.env.DATABASE_PATH || "./data/yingjie.db");
 const projectStore = createProjectStore(databasePath);
@@ -53,8 +54,12 @@ function respond(response, status, body, origin, extraHeaders = {}) {
   response.end(JSON.stringify(body));
 }
 
-function configured() {
+function videoConfigured() {
   return Boolean(process.env.ARK_API_KEY && process.env.ARK_VIDEO_ENDPOINT_ID);
+}
+
+function textConfigured() {
+  return Boolean(process.env.ARK_API_KEY);
 }
 
 async function readJson(request, maxBytes = maxRequestBytes) {
@@ -182,7 +187,14 @@ const server = createServer(async (request, response) => {
   if (request.method === "OPTIONS") return respond(response, 204, {}, origin);
   if (origin && !isAllowedOrigin(origin)) return respond(response, 403, { error: "Origin is not allowed." }, origin);
   const url = new URL(request.url, `http://${request.headers.host}`);
-  if (request.method === "GET" && url.pathname === "/healthz") return respond(response, 200, { ok: true, provider: "Seedance", configured: configured(), database: "sqlite" }, origin);
+  if (request.method === "GET" && url.pathname === "/healthz") return respond(response, 200, {
+    ok: true,
+    provider: "Volcengine Ark",
+    configured: textConfigured() || videoConfigured(),
+    textConfigured: textConfigured(),
+    videoConfigured: videoConfigured(),
+    database: "sqlite"
+  }, origin);
   try {
     const studioMatch = url.pathname.match(/^\/v1\/projects\/([A-Za-z0-9_-]{1,80})\/studio$/);
     const jobsMatch = url.pathname.match(/^\/v1\/projects\/([A-Za-z0-9_-]{1,80})\/video-jobs$/);
@@ -193,7 +205,19 @@ const server = createServer(async (request, response) => {
     }
     if (request.method === "GET" && jobsMatch) return respond(response, 200, { jobs: projectStore.listVideoJobs(jobsMatch[1]) }, origin);
 
-    if (!configured()) return respond(response, 503, { error: "Video service is not configured. Set ARK_API_KEY and ARK_VIDEO_ENDPOINT_ID." }, origin);
+    if (request.method === "GET" && url.pathname === "/v1/models") {
+      return respond(response, 200, modelCatalog(textConfigured()), origin, { "Cache-Control": "public, max-age=1800" });
+    }
+    if (request.method === "POST" && url.pathname === "/v1/production/generate") {
+      if (!textConfigured()) return respond(response, 503, { error: "文本模型服务未配置。请设置 ARK_API_KEY。" }, origin);
+      const retryAfter = takeJobSlot(request);
+      if (retryAfter) return respond(response, 429, { error: "模型生成请求过于频繁，请稍后重试。" }, origin, { "Retry-After": String(retryAfter) });
+      const input = await readJson(request);
+      const result = await generateProductionWithArk(input);
+      return respond(response, 200, result, origin);
+    }
+
+    if (!videoConfigured()) return respond(response, 503, { error: "视频服务未配置。请设置 ARK_API_KEY 和 ARK_VIDEO_ENDPOINT_ID。" }, origin);
     if (request.method === "POST" && url.pathname === "/v1/video-jobs") {
       const input = await readJson(request);
       const requestBody = buildVideoJobRequest(input);
@@ -217,4 +241,4 @@ const server = createServer(async (request, response) => {
   }
 });
 
-server.listen(port, () => console.log(`映界 Seedance video service listening on :${port}`));
+server.listen(port, () => console.log(`映界 Volcengine Ark gateway listening on :${port}`));

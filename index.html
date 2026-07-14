@@ -10,7 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Noto+Serif+SC:wght@500;600;700;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="./styles.css?v=20260713-production-live" />
     <link rel="stylesheet" href="./layout-recovery.css?v=20260712" />
-    <link rel="stylesheet" href="./production-studio.css?v=20260713-production-live" />
+    <link rel="stylesheet" href="./production-studio.css?v=20260714-ark-models" />
     <style>
       .cast-thumb.generated { background: radial-gradient(circle at 50% 34%, #f5d1b1 0 19%, transparent 20%), linear-gradient(145deg, #483a58 0 45%, #746695 46% 56%, #282b40 57%); }
       .draft-character .portrait-stage img { opacity: .32; filter: grayscale(1) blur(1px); }
@@ -64,7 +64,13 @@
         <section class="creative-brief card">
           <div class="brief-head"><div><span class="section-kicker">全季创作指令</span><h2>一句念头，先成为 60 集的故事引擎</h2></div><span class="brief-status">✓ 已同步至编剧、分镜、动画与审片 Agent</span></div>
           <textarea id="briefInput" aria-label="创作指令">暴雨将至的上海，失去记忆的电台主持人收到一段来自未来的语音。她必须在午夜前找到发信者，否则整座城市会陷入静默。</textarea>
-          <div class="brief-footer"><div class="tag-list"><button class="tag active">都市悬疑</button><button class="tag active">女性向</button><button class="tag">2–3 分钟</button><button class="tag">9:16 竖屏</button><button class="tag">冷暖对照</button></div><button class="generate-button" id="runPipeline"><span>✦</span> AI 拆解并更新制作链 <kbd>⌘ ↵</kbd></button></div>
+          <div class="brief-footer">
+            <div class="tag-list"><button class="tag active">都市悬疑</button><button class="tag active">女性向</button><button class="tag">2–3 分钟</button><button class="tag">9:16 竖屏</button><button class="tag">冷暖对照</button></div>
+            <div class="brief-generation-controls">
+              <label class="ai-model-control" for="productionModel"><span>创作模型</span><select id="productionModel" aria-describedby="modelBilling"><option value="doubao-seed-2.1-turbo">Seed 2.1 Turbo · 推荐</option><option value="doubao-seed-2.1-pro">Seed 2.1 Pro · 高质量</option><option value="doubao-seed-evolving">Seed Evolving · Agent</option><option value="local-rules">本地规则草稿 · 免费</option></select><small id="modelBilling">正在读取方舟模型与计费信息…</small></label>
+              <button class="generate-button" id="runPipeline"><span>✦</span> AI 拆解并更新制作链 <kbd>⌘ ↵</kbd></button>
+            </div>
+          </div>
         </section>
 
         <section class="production-intake" aria-labelledby="productionIntakeTitle">
@@ -242,7 +248,7 @@
           <div class="automation-layout">
             <article class="production-console card">
               <div class="card-head"><div><span class="section-kicker">制作编排器</span><h2>先生成计划，再消耗额度</h2></div><span class="plan-state" id="productionState">等待编排</span></div>
-              <p class="console-intro">把已锁定的人物、世界规则与镜头上下文分配给剧本、视觉、镜头、声音和审片 Agent。未通过门禁的内容不会进入付费视频队列。</p>
+              <p class="console-intro">所选方舟文本模型先生成剧本、人物、场景与分镜，再把已锁定资产分配给视觉、声音和审片 Agent。未通过门禁的内容不会进入付费视频队列。</p>
               <div class="production-route" id="productionRoute">
                 <div class="route-step done"><i>剧</i><span><b>剧本拆解</b><small>3 幕 · 12 节点</small></span><em>已就绪</em></div>
                 <div class="route-step done"><i>视</i><span><b>资产绑定</b><small>2 人物 · 3 场景</small></span><em>已就绪</em></div>
@@ -252,7 +258,7 @@
               </div>
               <div class="plan-controls"><div><span>当前 EP01 规格</span><b>02:47 · 9:16 · 24 镜</b></div><div><span>当前 EP01 用量</span><b><strong id="creditEstimate">38</strong> credits</b></div><div><span>本集生成预估</span><b id="renderEstimate">约 18 分钟</b></div></div>
               <div class="console-actions"><button class="outline-button" id="approveBatch">预审 38 credits</button><button class="generate-button" id="startBatchRender"><span>✦</span> 生成全篇生产计划</button></div>
-              <p class="automation-note" id="automationNote">提示：计划编排不消耗模型额度；进入真实批量生成前仍会要求你确认预算。</p>
+              <p class="automation-note" id="automationNote">提示：剧本与分镜规划会产生所选文本模型的 Token 用量；图片和视频生成仍会在进入队列前单独确认预算。</p>
             </article>
             <aside class="quality-gate card">
               <div class="card-head"><div><span class="section-kicker">交付前质量门禁</span><h2>先解决会毁掉成片的事</h2></div><span class="score-ring"><b id="qualityGateScore">92</b><small>/100</small></span></div>
@@ -323,7 +329,7 @@
     </div>
 
     <script src="./runtime-config.js?v=20260712-seedance-local"></script>
-    <script src="./production-studio.js?v=20260713-production-live-2"></script>
-    <script src="./app.js?v=20260713-production-live"></script>
+    <script src="./production-studio.js?v=20260714-ark-models"></script>
+    <script src="./app.js?v=20260714-ark-models"></script>
   </body>
 </html>

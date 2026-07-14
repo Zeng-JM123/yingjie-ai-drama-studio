@@ -2,11 +2,11 @@
   "name": "yingjie-seedance-video-service",
   "version": "0.1.0",
   "private": true,
-  "description": "Secure Seedance video-task gateway for the 映界 studio",
+  "description": "Secure Volcengine Ark text and Seedance gateway for the 映界 studio",
   "type": "module",
   "engines": { "node": ">=22.13" },
   "scripts": {
     "start": "node server.mjs",
-    "check": "node --check server.mjs"
+    "check": "node --check server.mjs && node --check production-service.mjs"
   }
 }

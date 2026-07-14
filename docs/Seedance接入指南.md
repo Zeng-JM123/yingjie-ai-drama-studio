@@ -1,6 +1,8 @@
-# Seedance 视频生成接入指南
+# 方舟文本生成与 Seedance 视频接入指南
 
-映界的网页部署在 GitHub Pages，属于公开静态站点。因此 Seedance 的 API Key **绝不能**放入 `app.js`、`runtime-config.js`、GitHub Pages 环境变量或任何会被浏览器下载的文件中。本仓库通过 `video-service/` 充当唯一的服务端代理。
+映界的网页部署在 GitHub Pages，属于公开静态站点。因此方舟和 Seedance 的 API Key **绝不能**放入 `app.js`、`runtime-config.js`、GitHub Pages 环境变量或任何会被浏览器下载的文件中。本仓库通过 `video-service/` 充当唯一的服务端代理。
+
+创作输入使用 `POST /v1/production/generate` 调用所选方舟文本模型，返回故事分析、角色、场景、分集计划和 8 镜分镜 JSON；返回中的模型 ID、方舟请求 ID 与 Token 用量会写入项目元数据。模型下拉目录来自 `GET /v1/models`。当前展示的 Seed 2.1 Turbo、Seed 2.1 Pro 和 Seed Evolving 都是按量付费模型，官方页面列出的 50 万 tokens 属于试用额度，不代表永久免费。
 
 > 你已在对话中粘贴过密钥。为降低暴露风险，建议在完成部署后立即在火山方舟控制台轮换该密钥，并只将新密钥保存到部署平台的 Secret/Environment Variables。
 
@@ -29,6 +31,10 @@ sequenceDiagram
 
 ```bash
 ARK_API_KEY=<在部署平台 Secret 中填写>
+ARK_TEXT_MODEL_TURBO=doubao-seed-2-1-turbo
+ARK_TEXT_MODEL_PRO=doubao-seed-2-1-pro
+ARK_TEXT_MODEL_EVOLVING=doubao-seed-evolving
+ARK_TEXT_MAX_TOKENS=24000
 ARK_VIDEO_ENDPOINT_ID=ep-20260712014412-l4ncj
 CORS_ORIGINS=https://zeng-jm123.github.io
 PORT=8787
@@ -57,7 +63,7 @@ npm start
 curl http://localhost:8787/healthz
 ```
 
-正常时会返回 `{"ok":true,"provider":"Seedance","configured":true}`。若 `configured` 是 `false`，检查部署平台是否已设置 `ARK_API_KEY` 和 `ARK_VIDEO_ENDPOINT_ID`，然后重新部署服务。
+正常时会返回 `textConfigured` 和 `videoConfigured`。文本生成只要求 `ARK_API_KEY`；视频生成同时要求 `ARK_API_KEY` 和 `ARK_VIDEO_ENDPOINT_ID`。
 
 ## 发布视频网关
 
@@ -74,6 +80,7 @@ curl http://localhost:8787/healthz
 | 健康检查 | `GET /healthz` |
 | 公开端口 | 平台注入的 `PORT`（本地默认 `8787`） |
 | 私密变量 | `ARK_API_KEY`、`ARK_VIDEO_ENDPOINT_ID` |
+| 模型变量 | `ARK_TEXT_MODEL_TURBO`、`ARK_TEXT_MODEL_PRO`、`ARK_TEXT_MODEL_EVOLVING`、`ARK_TEXT_MAX_TOKENS` |
 | 普通变量 | `CORS_ORIGINS`、`DATABASE_PATH`、`JOB_LIMIT_MAX`、`JOB_LIMIT_WINDOW_SECONDS`、`TRUST_PROXY` |
 | 持久化卷 | 挂载到 `/data` |
 

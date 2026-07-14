@@ -168,6 +168,134 @@ let activities = [
 ];
 let selectedSeasonEpisode = 1;
 let seasonFilter = 'all';
+let availableTextModels = [
+  { id: 'doubao-seed-2.1-turbo', name: 'Doubao Seed 2.1 Turbo', shortName: 'Seed 2.1 Turbo', recommended: true, description: '日常剧本与分镜推荐', pricing: { inputPerMillion: 3, outputPerMillion: 15 }, freeQuota: '50 万 tokens 试用额度', billing: 'trial_then_paid', available: false },
+  { id: 'doubao-seed-2.1-pro', name: 'Doubao Seed 2.1 Pro', shortName: 'Seed 2.1 Pro', description: '复杂长线剧情与高质量结构', pricing: { inputPerMillion: 6, outputPerMillion: 30 }, freeQuota: '50 万 tokens 试用额度', billing: 'trial_then_paid', available: false },
+  { id: 'doubao-seed-evolving', name: 'Doubao Seed Evolving', shortName: 'Seed Evolving', description: 'Agent 与复杂任务编排', pricing: { inputPerMillion: 6, outputPerMillion: 30 }, freeQuota: '50 万 tokens 试用额度', billing: 'trial_then_paid', available: false }
+];
+let textModelsConfigured = false;
+
+function selectedProductionMode() {
+  return window.YingjieProduction?.exportState()?.mode || $('.production-modes button.active')?.dataset.productionMode || 'series';
+}
+
+function selectedTextModelId() {
+  return $('#productionModel')?.value || projectMetadata.aiModel || 'doubao-seed-2.1-turbo';
+}
+
+function textModelById(id) {
+  return availableTextModels.find(model => model.id === id);
+}
+
+function setModelRunStatus(message, state = '') {
+  const target = $('#modelBilling');
+  if (!target) return;
+  target.textContent = message;
+  target.className = state;
+}
+
+function renderModelSelection(preferredId = projectMetadata.aiModel) {
+  const select = $('#productionModel');
+  if (!select) return;
+  const current = preferredId || select.value || 'doubao-seed-2.1-turbo';
+  select.replaceChildren();
+  availableTextModels.forEach(model => {
+    const option = document.createElement('option');
+    option.value = model.id;
+    const price = `¥${model.pricing.inputPerMillion}+${model.pricing.outputPerMillion}/百万`;
+    option.textContent = `${model.shortName || model.name}${model.recommended ? ' · 推荐' : ''} · ${price}`;
+    select.append(option);
+  });
+  const localOption = document.createElement('option');
+  localOption.value = 'local-rules';
+  localOption.textContent = '本地规则草稿 · 免费 · 不调用模型';
+  select.append(localOption);
+  select.value = [...select.options].some(option => option.value === current) ? current : 'doubao-seed-2.1-turbo';
+  renderSelectedModelBilling();
+}
+
+function renderSelectedModelBilling() {
+  const id = selectedTextModelId();
+  if (id === 'local-rules') return setModelRunStatus('永久免费 · 仅生成规则草稿，不调用方舟模型。', '');
+  const model = textModelById(id);
+  if (!model) return setModelRunStatus('方舟模型信息暂不可用。', 'error');
+  const connection = textModelsConfigured ? '模型服务已连接' : '模型服务未连接';
+  setModelRunStatus(`${model.freeQuota}；用完后输入 ¥${model.pricing.inputPerMillion}/百万、输出 ¥${model.pricing.outputPerMillion}/百万 tokens · ${connection}`, textModelsConfigured ? 'ready' : 'error');
+}
+
+async function initializeModelCatalog() {
+  const select = $('#productionModel');
+  select?.addEventListener('change', () => {
+    projectMetadata.aiModel = selectedTextModelId();
+    renderSelectedModelBilling();
+    scheduleProjectSave();
+  });
+  renderModelSelection();
+  if (!studioGateway) return;
+  try {
+    const response = await fetch(`${studioGateway}/v1/models`);
+    const catalog = await response.json();
+    if (!response.ok || !Array.isArray(catalog.models)) throw new Error(catalog.error || '模型目录读取失败');
+    availableTextModels = catalog.models;
+    textModelsConfigured = Boolean(catalog.configured);
+    renderModelSelection(projectMetadata.aiModel || select?.value);
+  } catch {
+    textModelsConfigured = false;
+    renderSelectedModelBilling();
+  }
+}
+
+async function requestAIProduction(source, options = {}) {
+  const model = selectedTextModelId();
+  projectMetadata.aiModel = model;
+  if (model === 'local-rules') {
+    setModelRunStatus('正在使用本地规则草稿；本次不会调用模型。', 'running');
+    return null;
+  }
+  if (!studioGateway) throw new Error('方舟模型服务未连接。请先配置 studioApiBaseUrl，或明确选择“本地规则草稿”。');
+  const modelInfo = textModelById(model);
+  setModelRunStatus(`正在调用方舟 ${modelInfo?.name || model} 生成${options.scope === 'episode' ? '分集分镜' : '故事、人物、场景和分镜'}…`, 'running');
+  let response;
+  try {
+    response = await fetch(`${studioGateway}/v1/production/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        source,
+        mode: options.mode || selectedProductionMode(),
+        scope: options.scope || 'project',
+        episodeNumber: options.episodeNumber || 1,
+        episodeContext: options.episodeContext || undefined,
+        model
+      })
+    });
+  } catch {
+    setModelRunStatus('无法连接方舟模型网关；本次没有生成或覆盖项目数据。', 'error');
+    throw new Error('无法连接方舟模型网关。请确认服务已启动并配置 ARK_API_KEY。');
+  }
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    setModelRunStatus(payload.error || '方舟模型调用失败。', 'error');
+    throw new Error(payload.error || '方舟模型调用失败。');
+  }
+  const generation = payload.generation || {};
+  projectMetadata.lastModelGeneration = generation;
+  const usage = generation.totalTokens ? ` · ${generation.totalTokens.toLocaleString()} tokens` : '';
+  setModelRunStatus(`已由 ${generation.modelName || modelInfo?.name || model} 生成${usage} · 结果已进入项目保存队列`, 'ready');
+  return payload;
+}
+
+function currentProductionSource() {
+  return window.YingjieProduction?.exportState()?.source?.text || $('#sourceMaterial')?.value.trim() || $('#briefInput').value.trim();
+}
+
+window.YingjieAI = {
+  generateProject: (source, options = {}) => requestAIProduction(source, { ...options, scope: 'project' }),
+  generateEpisode: (source, episode, options = {}) => requestAIProduction(source, { ...options, scope: 'episode', episodeNumber: episode.number, episodeContext: episode }),
+  selectedModelId: selectedTextModelId,
+  renderSelection: renderModelSelection,
+  setStatus: setModelRunStatus
+};
 
 function createSeasonPlan(premise = DEFAULT_SEASON_PREMISE) {
   let number = 0;
@@ -834,6 +962,7 @@ function applyStudio(studio) {
   hydratePreviewState();
   updateShotCount();
   renderProjectIdentity(projectMetadata.title, studio.project.episode || 1);
+  renderModelSelection(projectMetadata.aiModel);
   window.YingjieProduction?.hydrate();
 }
 
@@ -920,23 +1049,25 @@ $$('#episodeFilters button').forEach(button => button.addEventListener('click', 
   renderSeasonPlan();
 }));
 
-$('#generateSeasonPlan').addEventListener('click', event => {
+$('#generateSeasonPlan').addEventListener('click', async event => {
   const brief = $('#briefInput').value.trim();
   if (!brief) return notify('先写下故事念头，AI 才能为你拆解 60 集。');
   const button = event.currentTarget;
   button.disabled = true;
-  button.innerHTML = '<span>✦</span> 正在编排 60 集…';
-  setTimeout(() => {
-    projectMetadata.seasonPlan = window.YingjieProduction?.createSeasonPlan(brief) || createSeasonPlan(brief);
-    selectedSeasonEpisode = 1;
-    seasonFilter = 'all';
-    renderSeasonPlan();
+  button.innerHTML = '<span>✦</span> 方舟正在编排 60 集…';
+  try {
+    const modelResult = await window.YingjieAI.generateProject(brief, { mode: selectedProductionMode() });
+    const result = window.YingjieProduction?.buildProject(brief, { source: 'season', episodeNumber: 1, modelResult });
+    if (!result) throw new Error('生产引擎没有返回项目数据。');
     button.disabled = false;
     button.innerHTML = '<span>✦</span> 重新生成 60 集拆解';
-    addFeed('剧本架构师', '已完成 60 集 × 2 分钟的连续拆解，并为每集写入钩子与交接规则。', 'amber');
-    scheduleProjectSave();
-    notify('全季故事已拆解：60 集、5 段弧线、120 分钟，动画连续性已锁定。');
-  }, 850);
+    addFeed('剧本架构师', `${modelResult?.generation?.modelName || '本地规则草稿'} 已完成 ${result.episodeCount} 集连续拆解，并为每集写入钩子与交接规则。`, 'amber');
+    notify(`全季故事已由 ${modelResult?.generation?.modelName || '本地规则草稿'} 重新生成并同步到分镜台。`);
+  } catch (error) {
+    button.disabled = false;
+    button.innerHTML = '<span>✦</span> 生成 60 集拆解';
+    notify(error.message || '方舟模型编排失败，请重试。');
+  }
 });
 
 $('#runSeasonCheck').addEventListener('click', event => {
@@ -958,37 +1089,60 @@ $('#runSeasonCheck').addEventListener('click', event => {
   }, 700);
 });
 
-$('#openEpisodeProduction').addEventListener('click', () => {
+$('#openEpisodeProduction').addEventListener('click', async event => {
   const episode = seasonEpisodeByNumber(selectedSeasonEpisode);
   if (!episode) return;
-  const result = window.YingjieProduction?.loadEpisode(episode.number);
-  renderProjectIdentity(projectMetadata.title, episode.number);
-  $('#storyboard').scrollIntoView({ behavior: 'smooth', block: 'start' });
-  notify(`已加载 EP${String(episode.number).padStart(2, '0')} 的故事交接并实时生成 ${result?.shotCount || 8} 个分镜：镜头继承「${episode.hook}」。`);
+  const button = event.currentTarget;
+  button.disabled = true;
+  button.textContent = `方舟正在生成 EP${String(episode.number).padStart(2, '0')} 分镜…`;
+  try {
+    const modelResult = await window.YingjieAI.generateEpisode(currentProductionSource(), episode, { mode: selectedProductionMode() });
+    const result = window.YingjieProduction?.loadEpisode(episode.number, { modelResult });
+    renderProjectIdentity(projectMetadata.title, episode.number);
+    $('#storyboard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    notify(`EP${String(episode.number).padStart(2, '0')} 已由 ${modelResult?.generation?.modelName || '本地规则草稿'} 实时生成 ${result?.shotCount || 8} 个分镜。`);
+  } catch (error) {
+    notify(error.message || '分集分镜生成失败，请重试。');
+  } finally {
+    button.disabled = false;
+    button.textContent = `进入 EP${String(episode.number).padStart(2, '0')} 制作台 ↗`;
+  }
 });
 
 let isRunning = false;
-function runPipeline() {
+async function runPipeline() {
   if (isRunning) return;
   const brief = $('#briefInput').value.trim();
   if (!brief) return notify('请先写下本集的创作指令');
-  let result;
-  try {
-    result = window.YingjieProduction?.buildProject(brief, { source: 'brief', episodeNumber: 1 });
-  } catch (error) {
-    notify(error.message || '生产工程构建失败，请检查输入后重试。');
-    return;
-  }
-  if (!result) return notify('生产引擎尚未就绪，请刷新页面后重试。');
-  const productionStages = [
-    ['剧本架构师', `已识别 ${result.characterCount} 个人物、${result.sceneCount} 个场景并重建 ${result.episodeCount} 集故事图。`, 'amber'],
-    ['视觉设定师', `已为《${result.title}》重建角色、世界规则和可追溯素材版本。`, 'purple'],
-    ['镜头导演', `已根据新故事实时生成 EP01 的 ${result.shotCount} 个分镜与三幕剧情节拍。`, 'blue'],
-    ['声音总监', '已把对白、环境声和人物声线约束写入当前分镜生产数据。', 'purple']
-  ];
   isRunning = true;
   const button = $('#runPipeline');
   button.disabled = true;
+  button.innerHTML = '<span>✦</span> 方舟正在生成制作数据…';
+  let result;
+  let modelResult;
+  try {
+    modelResult = await window.YingjieAI.generateProject(brief, { mode: selectedProductionMode() });
+    result = window.YingjieProduction?.buildProject(brief, { source: 'brief', episodeNumber: 1, modelResult });
+  } catch (error) {
+    button.disabled = false;
+    button.innerHTML = '<span>✦</span> AI 拆解并更新制作链 <kbd>⌘ ↵</kbd>';
+    isRunning = false;
+    notify(error.message || '方舟生产工程构建失败，请检查服务配置后重试。');
+    return;
+  }
+  if (!result) {
+    button.disabled = false;
+    button.innerHTML = '<span>✦</span> AI 拆解并更新制作链 <kbd>⌘ ↵</kbd>';
+    isRunning = false;
+    return notify('生产引擎尚未就绪，请刷新页面后重试。');
+  }
+  const modelName = modelResult?.generation?.modelName || '本地规则草稿';
+  const productionStages = [
+    ['剧本架构师', `${modelName} 已识别 ${result.characterCount} 个人物、${result.sceneCount} 个场景并生成 ${result.episodeCount} 集故事图。`, 'amber'],
+    ['视觉设定师', `${modelName} 已为《${result.title}》生成角色、世界规则和可追溯素材版本。`, 'purple'],
+    ['镜头导演', `${modelName} 已实时生成 EP01 的 ${result.shotCount} 个分镜与三幕剧情节拍。`, 'blue'],
+    ['声音总监', '已把对白、环境声和人物声线约束写入当前分镜生产数据。', 'purple']
+  ];
   button.innerHTML = '<span>✦</span> 正在同步制作链…';
   let index = 0;
   const next = () => {
@@ -999,7 +1153,7 @@ function runPipeline() {
       setText('#healthScore', '94');
       projectMetadata.healthScore = 94;
       scheduleProjectSave();
-      notify(`《${result.title}》制作链已真实更新：${result.characterCount} 人物、${result.shotCount} 分镜、${result.assetCount} 项素材已写入项目。`);
+      notify(`《${result.title}》已由 ${modelName} 生成：${result.characterCount} 人物、${result.shotCount} 分镜、${result.assetCount} 项素材已写入项目。`);
       return;
     }
     const [agent, copy, kind] = productionStages[index];
@@ -1012,25 +1166,48 @@ function runPipeline() {
 }
 $('#runPipeline').addEventListener('click', runPipeline);
 
-function runFullProductionPlan() {
+async function runFullProductionPlan() {
   if (fullProductionRunning) return;
-  if (!$('#briefInput').value.trim()) return notify('请先写下全季创作指令，再开始 60 集生产编排。');
+  const brief = $('#briefInput').value.trim();
+  if (!brief) return notify('请先写下全季创作指令，再开始 60 集生产编排。');
   fullProductionRunning = true;
-  const production = getProduction();
+  let production = getProduction();
   production.status = 'running';
   production.planReady = false;
   production.plannedShots = Math.max(Object.keys(shots).length, 8);
   const launchButton = $('#runFullProduction');
   const planButton = $('#startBatchRender');
   [launchButton, planButton].forEach(button => { if (button) button.disabled = true; });
-  if (launchButton) launchButton.innerHTML = '<span>✦</span> 正在编排全季…';
-  if (planButton) planButton.innerHTML = '<span>✦</span> 正在生成计划…';
+  if (launchButton) launchButton.innerHTML = '<span>✦</span> 方舟正在编排全季…';
+  if (planButton) planButton.innerHTML = '<span>✦</span> 方舟正在生成计划…';
   renderProductionState();
 
+  let modelResult;
+  let projectResult;
+  try {
+    modelResult = await window.YingjieAI.generateProject(brief, { mode: selectedProductionMode() });
+    projectResult = window.YingjieProduction?.buildProject(brief, { source: 'full-production', episodeNumber: selectedSeasonEpisode || 1, modelResult });
+    if (!projectResult) throw new Error('生产引擎没有返回项目数据。');
+    production = getProduction();
+    production.status = 'running';
+    production.planReady = false;
+  } catch (error) {
+    production = getProduction();
+    production.status = 'idle';
+    fullProductionRunning = false;
+    [launchButton, planButton].forEach(button => { if (button) button.disabled = false; });
+    if (launchButton) launchButton.innerHTML = '<span>✦</span> 一键编排全篇 <kbd>⌘ ⇧ ↵</kbd>';
+    if (planButton) planButton.innerHTML = '<span>✦</span> 生成全篇生产计划';
+    renderProductionState();
+    return notify(error.message || '方舟全季编排失败，请重试。');
+  }
+
+  const modelName = modelResult?.generation?.modelName || '本地规则草稿';
+
   const stages = [
-    { route: 0, state: 'running', note: '校验中', agent: '剧本架构师', copy: '已把 60 集钩子、反转和章末悬念拆成可连续生产的故事路线。', planned: 8 },
-    { route: 1, state: 'running', note: '绑定中', agent: '视觉设定师', copy: '已把人物、天气、道具与禁用元素设为跨集可继承资产。', planned: 8 },
-    { route: 2, state: 'running', note: '补镜中', agent: '镜头导演', copy: '正在先补齐 EP01 的 24 镜，并继承全季动画连续性锚点。', planned: 16 },
+    { route: 0, state: 'running', note: '校验中', agent: '剧本架构师', copy: `${modelName} 已把 ${projectResult.episodeCount} 集钩子、反转和章末悬念生成连续故事路线。`, planned: 8 },
+    { route: 1, state: 'running', note: '绑定中', agent: '视觉设定师', copy: `${modelName} 已生成 ${projectResult.characterCount} 个人物、${projectResult.sceneCount} 个场景及跨集连续性锚点。`, planned: 8 },
+    { route: 2, state: 'running', note: '补镜中', agent: '镜头导演', copy: `${modelName} 已生成当前集 ${projectResult.shotCount} 个可执行分镜，并写入图像与视频提示词。`, planned: 16 },
     { route: 3, state: 'running', note: '写入中', agent: '声音总监', copy: '已为每集写入台词情绪、环境声与跨集音乐转场规则。', planned: 24 },
     { route: 4, state: 'running', note: '预检中', agent: '审片助手', copy: '已建立全季角色、连续性、字幕和素材来源的交付前门禁。', planned: 24 }
   ];
@@ -1049,8 +1226,8 @@ function runFullProductionPlan() {
       if (planButton) planButton.innerHTML = '<span>↻</span> 更新全季生产计划';
       fullProductionRunning = false;
       window.YingjieProduction?.syncCoreAssets();
-      addFeed('制作编排器', '60 集生产路线已生成；EP01 的 24 镜、声音脚本与质量门禁已先行联动。', 'purple');
-      notify('全季生产计划已就绪：60 集故事交接已锁定，当前只编排 EP01，不会自动消耗全季额度。');
+      addFeed('制作编排器', `${modelName} 的全季生产路线已写入项目；当前集分镜、声音脚本与质量门禁已联动。`, 'purple');
+      notify(`全季生产计划已由 ${modelName} 生成并保存；图片和视频队列仍需单独确认预算。`);
       scheduleProjectSave();
       return;
     }
@@ -1273,16 +1450,22 @@ $('#addShot').addEventListener('click', () => {
   notify('已添加空白镜头；请补足角色、情绪和声音，AI 会继承上下文生成。');
   scheduleProjectSave();
 });
-$('#regenerateShots').addEventListener('click', event => {
+$('#regenerateShots').addEventListener('click', async event => {
   const button = event.currentTarget;
   button.disabled = true;
-  button.textContent = '✦ 正在重排…';
-  setTimeout(() => {
+  button.textContent = '✦ 方舟正在重排…';
+  try {
+    const episode = seasonEpisodeByNumber(selectedSeasonEpisode) || ensureSeasonPlan().episodes[0];
+    const modelResult = await window.YingjieAI.generateEpisode(currentProductionSource(), episode, { mode: selectedProductionMode() });
+    const result = window.YingjieProduction?.loadEpisode(episode.number, { modelResult });
+    addFeed('镜头导演', `${modelResult?.generation?.modelName || '本地规则草稿'} 已按当前剧情和连续性锚点重排 ${result?.shotCount || 8} 个镜头。`, 'blue');
+    notify(`分镜已实时更新：${result?.shotCount || 8} 镜，模型输出已写入项目版本。`);
+  } catch (error) {
+    notify(error.message || '方舟模型重排失败，请重试。');
+  } finally {
     button.disabled = false;
     button.textContent = '↻ AI 重排节奏';
-    addFeed('镜头导演', '已提出一套更早揭示危机、加快中段节奏的替代方案。', 'blue');
-    notify('AI 已生成备用节奏方案：前 30 秒的钩子密度提升 12%');
-  }, 1100);
+  }
 });
 $('#showRisks').addEventListener('click', () => { selectShot(4); $('#storyboard').scrollIntoView({ behavior: 'smooth', block: 'start' }); notify('已定位到镜头 04：请确认画面时间应为午夜，而不是黄昏。'); });
 
@@ -1608,5 +1791,6 @@ renderFeed();
 renderSeasonPlan();
 renderQualityState();
 renderProductionState();
+initializeModelCatalog();
 window.YingjieProduction?.init();
 loadProject();

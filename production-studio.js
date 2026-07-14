@@ -18,7 +18,7 @@
     const previous = projectMetadata.productionStudio || {};
     const canvas = previous.canvas || {};
     projectMetadata.productionStudio = {
-      version: 2,
+      version: 3,
       mode: ['series', 'single', 'comic', 'realistic'].includes(previous.mode) ? previous.mode : 'series',
       source: previous.source && typeof previous.source === 'object' ? previous.source : { text: '', fileName: '', analysis: null },
       canvas: {
@@ -28,7 +28,8 @@
       },
       assets: Array.isArray(previous.assets) ? previous.assets : [],
       lastBuild: previous.lastBuild && typeof previous.lastBuild === 'object' ? previous.lastBuild : null,
-      builds: Array.isArray(previous.builds) ? previous.builds.slice(0, 20) : []
+      builds: Array.isArray(previous.builds) ? previous.builds.slice(0, 20) : [],
+      generations: Array.isArray(previous.generations) ? previous.generations.slice(0, 20) : []
     };
     return projectMetadata.productionStudio;
   }
@@ -125,6 +126,141 @@
       style,
       episodeTarget: mode === 'single' ? 1 : 60,
       analyzedAt: new Date().toISOString()
+    };
+  }
+
+  function modelProduction(envelope) {
+    return envelope?.production && typeof envelope.production === 'object' ? envelope.production : envelope;
+  }
+
+  function normalizeModelAnalysis(source, mode, envelope) {
+    const fallback = analyzeSourceText(source, mode);
+    const raw = modelProduction(envelope)?.analysis;
+    if (!raw || typeof raw !== 'object') return { ...fallback, generation: envelope?.generation || null };
+    const characterProfiles = (Array.isArray(raw.characters) ? raw.characters : []).map((item, index) => {
+      if (typeof item === 'string') return { name: cleanText(item, 40) };
+      return {
+        name: cleanText(item?.name, 40),
+        role: cleanText(item?.role, 240),
+        tone: cleanText(item?.tone, 120),
+        anchor: cleanText(item?.anchor, 240)
+      };
+    }).filter(item => item.name).slice(0, 12);
+    const sceneProfiles = (Array.isArray(raw.scenes) ? raw.scenes : []).map(item => {
+      if (typeof item === 'string') return { name: cleanText(item, 50) };
+      return {
+        name: cleanText(item?.name, 50),
+        time: cleanText(item?.time, 120),
+        visualRules: cleanText(item?.visualRules, 280)
+      };
+    }).filter(item => item.name).slice(0, 12);
+    const characters = characterProfiles.map(item => item.name);
+    const scenes = sceneProfiles.map(item => item.name);
+    const protagonist = cleanText(raw.protagonist, 40) || characters[0] || fallback.protagonist;
+    return {
+      ...fallback,
+      title: cleanText(raw.title, 30) || fallback.title,
+      premise: cleanText(raw.premise, 320) || fallback.premise,
+      protagonist,
+      characters: characters.length ? characters : fallback.characters,
+      characterProfiles: characterProfiles.length ? characterProfiles : fallback.characters.map(name => ({ name })),
+      scenes: scenes.length ? scenes : fallback.scenes,
+      sceneProfiles: sceneProfiles.length ? sceneProfiles : fallback.scenes.map(name => ({ name })),
+      dialogueLines: Array.isArray(raw.dialogueLines) ? raw.dialogueLines.map(line => cleanText(line, 240)).filter(Boolean).slice(0, 20) : fallback.dialogueLines,
+      storyLines: Array.isArray(raw.storyLines) ? raw.storyLines.map(line => cleanText(line, 320)).filter(Boolean).slice(0, 24) : fallback.storyLines,
+      style: cleanText(raw.style, 160) || fallback.style,
+      generation: envelope?.generation || null,
+      analyzedAt: envelope?.generation?.generatedAt || new Date().toISOString()
+    };
+  }
+
+  function normalizeModelSeasonPlan(raw, analysis) {
+    const fallback = createAdaptiveSeasonPlan(analysis);
+    if (!raw || typeof raw !== 'object') return fallback;
+    const acts = fallback.acts.map((base, index) => {
+      const item = Array.isArray(raw.acts) ? raw.acts[index] : null;
+      return item && typeof item === 'object' ? {
+        ...base,
+        id: index + 1,
+        title: cleanText(item.title, 80) || base.title,
+        range: cleanText(item.range, 30) || base.range,
+        summary: cleanText(item.summary, 260) || base.summary,
+        characterState: cleanText(item.characterState, 280) || base.characterState
+      } : base;
+    });
+    const rawEpisodes = Array.isArray(raw.episodes) ? raw.episodes : [];
+    const episodes = fallback.episodes.map((base, index) => {
+      const item = rawEpisodes[index];
+      if (!item || typeof item !== 'object') return base;
+      const act = Math.max(1, Math.min(acts.length, Number(item.act) || base.act));
+      return {
+        ...base,
+        id: `ep-${String(index + 1).padStart(2, '0')}`,
+        number: index + 1,
+        act,
+        actTitle: cleanText(item.actTitle, 80) || acts[act - 1]?.title || base.actTitle,
+        title: cleanText(item.title, 80) || base.title,
+        story: cleanText(item.story, 520) || base.story,
+        hook: cleanText(item.hook, 360) || base.hook,
+        previousHook: cleanText(item.previousHook, 360) || base.previousHook,
+        characterState: cleanText(item.characterState, 360) || base.characterState,
+        animationAnchor: cleanText(item.animationAnchor, 420) || base.animationAnchor,
+        handoff: cleanText(item.handoff, 360) || base.handoff,
+        duration: 120,
+        status: 'outlined'
+      };
+    });
+    return {
+      ...fallback,
+      version: 3,
+      premise: cleanText(raw.premise, 360) || analysis.premise,
+      continuityScore: Math.max(0, Math.min(100, Number(raw.continuityScore) || fallback.continuityScore)),
+      generatedAt: analysis.generation?.generatedAt || new Date().toISOString(),
+      generatedBy: analysis.generation || null,
+      acts,
+      episodes
+    };
+  }
+
+  function normalizeModelEpisodeProduction(raw, episode, analysis) {
+    const fallback = createEpisodeProductionData(episode, analysis);
+    if (!raw || typeof raw !== 'object') return fallback;
+    const rawBeats = raw.beats && typeof raw.beats === 'object' ? raw.beats : {};
+    const normalizedBeats = {};
+    ['act1', 'act2', 'act3'].forEach(key => {
+      const base = fallback.beats[key];
+      const item = rawBeats[key];
+      normalizedBeats[key] = item && typeof item === 'object' ? {
+        code: cleanText(item.code, 120) || base.code,
+        title: cleanText(item.title, 180) || base.title,
+        body: cleanText(item.body, 600) || base.body,
+        tension: /^\d{1,3}%$/.test(item.tension) ? item.tension : base.tension,
+        time: cleanText(item.time, 40) || base.time
+      } : base;
+    });
+    const rawShots = Array.isArray(raw.shots) ? raw.shots : Object.values(raw.shots || {});
+    const normalizedShots = {};
+    Object.keys(fallback.shots).forEach((key, index) => {
+      const base = fallback.shots[key];
+      const item = rawShots[index];
+      normalizedShots[key] = item && typeof item === 'object' ? {
+        ...base,
+        id: String(index + 1).padStart(2, '0'),
+        title: cleanText(item.title, 120) || base.title,
+        size: cleanText(item.size, 50) || base.size,
+        movement: cleanText(item.movement, 60) || base.movement,
+        duration: String(Number(item.duration) > 0 ? Number(item.duration).toFixed(1) : base.duration),
+        emotion: cleanText(item.emotion, 100) || base.emotion,
+        caption: cleanText(item.caption, 420) || base.caption,
+        note: cleanText(item.note, 320) || base.note,
+        prompt: cleanText(item.prompt, 1450) || base.prompt
+      } : base;
+    });
+    return {
+      episodeCode: cleanText(raw.episodeCode, 24) || fallback.episodeCode,
+      episodeTitle: cleanText(raw.episodeTitle, 100) || fallback.episodeTitle,
+      beats: normalizedBeats,
+      shots: normalizedShots
     };
   }
 
@@ -857,6 +993,7 @@
     const nextCharacters = {};
     const tones = ['主动 / 敏锐', '克制 / 观察', '直接 / 对抗', '沉稳 / 调停'];
     analysis.characters.forEach((name, index) => {
+      const profile = analysis.characterProfiles?.find(item => item.name === name) || {};
       const existing = previousEntries.find(([, character]) => character.name === name);
       const id = existing?.[0] || makeId('source', name);
       const previous = existing?.[1] || {};
@@ -864,12 +1001,12 @@
         code: `C-${String(index + 1).padStart(2, '0')}`,
         name,
         en: previous.en || 'SOURCE CHARACTER',
-        role: index === 0 ? `核心主角 · 推动《${analysis.title}》主要行动` : `主要角色 · 与${analysis.protagonist}形成第 ${index + 1} 组关系动力`,
+        role: profile.role || (index === 0 ? `核心主角 · 推动《${analysis.title}》主要行动` : `主要角色 · 与${analysis.protagonist}形成第 ${index + 1} 组关系动力`),
         image: previous.image || '',
         alt: `${name} 的角色概念草案`,
-        tone: previous.tone && !previous.tone.includes('待') ? previous.tone : tones[index % tones.length],
+        tone: profile.tone || (previous.tone && !previous.tone.includes('待') ? previous.tone : tones[index % tones.length]),
         voice: previous.voice && !previous.voice.includes('待') ? previous.voice : '待选择 · 需授权',
-        anchor: previous.anchor && !previous.anchor.includes('待') ? previous.anchor : `待锁定 ${name} 的服装、发型与关键道具`,
+        anchor: profile.anchor || (previous.anchor && !previous.anchor.includes('待') ? previous.anchor : `待锁定 ${name} 的服装、发型与关键道具`),
         look: previous.look || '概念造型',
         draft: true
       };
@@ -880,8 +1017,8 @@
     renderCharacterRail();
   }
 
-  function applyEpisodeProduction(episode, analysis, { render = true } = {}) {
-    const production = createEpisodeProductionData(episode, analysis);
+  function applyEpisodeProduction(episode, analysis, { render = true, production: suppliedProduction = null, generation = null } = {}) {
+    const production = suppliedProduction || createEpisodeProductionData(episode, analysis);
     Object.keys(beats).forEach(key => delete beats[key]);
     Object.assign(beats, production.beats);
     Object.keys(shots).forEach(key => delete shots[key]);
@@ -892,7 +1029,8 @@
       episode: Number(episode?.number) || 1,
       title: production.episodeTitle,
       generatedAt: new Date().toISOString(),
-      sourceBuildId: productionState().lastBuild?.id || null
+      sourceBuildId: productionState().lastBuild?.id || null,
+      generation: generation || analysis.generation || null
     };
     projectMetadata.reviewPassed = false;
     projectMetadata.deliveryGatePassed = false;
@@ -920,9 +1058,12 @@
     addCanvasNode({ id: 'story-season', type: 'story', title: analysis.title, summary: analysis.premise, sourceId: 'season', status: 'ready', assetIds: [] }, { render: false });
     Object.entries(characters).forEach(([id, character]) => addCanvasNode({ id: nodeId('character', id), type: 'character', title: character.name, summary: character.role, sourceId: id, status: character.draft ? 'draft' : 'locked', assetIds: [`character-${id}`, `audio-${id}`] }, { render: false }));
     analysis.scenes.forEach((sceneName, index) => {
+      const sceneProfile = analysis.sceneProfiles?.find(item => item.name === sceneName) || {};
       const assetId = `scene-source-${hashString(sceneName)}`;
-      upsertAsset({ id: assetId, type: 'scene', name: sceneName, description: `从原稿识别的场景线索 · ${analysis.style}`, status: 'draft', origin: '原稿解析', sourceId: sceneName, tags: [analysis.style], usedBy: [], previewClass: 'scene' });
-      addCanvasNode({ id: nodeId('scene', hashString(sceneName)), type: 'scene', title: sceneName, summary: '从原稿识别，待补充空间、光线和禁用元素', sourceId: sceneName, status: 'draft', assetIds: [assetId], x: 290, y: 310 + index * 112 }, { render: false });
+      const description = cleanText([sceneProfile.time, sceneProfile.visualRules, analysis.style].filter(Boolean).join(' · '), 360) || `从原稿识别的场景线索 · ${analysis.style}`;
+      const origin = analysis.generation ? `方舟模型 · ${analysis.generation.modelName}` : '原稿规则解析';
+      upsertAsset({ id: assetId, type: 'scene', name: sceneName, description, status: analysis.generation ? 'ready' : 'draft', origin, sourceId: sceneName, tags: [analysis.style], usedBy: [], previewClass: 'scene' });
+      addCanvasNode({ id: nodeId('scene', hashString(sceneName)), type: 'scene', title: sceneName, summary: description, sourceId: sceneName, status: analysis.generation ? 'ready' : 'draft', assetIds: [assetId], x: 290, y: 310 + index * 112 }, { render: false });
     });
     arrangeCanvas();
   }
@@ -931,7 +1072,9 @@
     source = String(source || '').trim();
     if (!source) return null;
     const state = productionState();
-    const analysis = analyzeSourceText(source, state.mode);
+    const envelope = options.modelResult || null;
+    const generated = modelProduction(envelope);
+    const analysis = envelope ? normalizeModelAnalysis(source, state.mode, envelope) : analyzeSourceText(source, state.mode);
     const build = {
       id: `build-${Date.now()}`,
       title: analysis.title,
@@ -940,12 +1083,16 @@
       characterCount: analysis.characters.length,
       sceneCount: analysis.scenes.length,
       episodeCount: analysis.episodeTarget,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      generation: envelope?.generation || null,
+      engine: envelope?.generation ? 'volcengine-ark' : 'local-rules'
     };
     state.source.text = source.slice(0, 40_000);
     state.source.analysis = analysis;
+    state.source.generation = envelope?.generation || null;
     state.lastBuild = build;
     state.builds = [build, ...state.builds.filter(item => item.id !== build.id)].slice(0, 20);
+    if (envelope?.generation) state.generations = [envelope.generation, ...state.generations.filter(item => item.id !== envelope.generation.id)].slice(0, 20);
     $('#briefInput').value = analysis.premise;
     if ($('#sourceMaterial') && options.source !== 'file') $('#sourceMaterial').value = source;
     reconcileDetectedCharacters(analysis);
@@ -957,16 +1104,19 @@
     state.canvas.nodes = [];
     state.canvas.seeded = false;
     projectMetadata.title = analysis.title;
+    const generatedWorld = generated?.worldRules && typeof generated.worldRules === 'object' ? generated.worldRules : {};
     projectMetadata.worldRules = {
       time: /深夜|午夜|夜晚|雨夜/.test(source) ? '夜景 · 依原稿时间连续' : '依照分集剧情时间连续',
       palette: analysis.mode === 'comic' ? '角色固定配色 + 高辨识轮廓' : analysis.mode === 'realistic' ? '自然肤色 + 场景主光连续' : '剧情主色 + 冲突强调色',
-      constraints: `保持${analysis.characters.join('、')}的身份、服装、站位和关键道具连续；场景以${analysis.scenes.join('、')}为准。`
+      constraints: `保持${analysis.characters.join('、')}的身份、服装、站位和关键道具连续；场景以${analysis.scenes.join('、')}为准。`,
+      ...Object.fromEntries(Object.entries(generatedWorld).filter(([key, value]) => ['time', 'palette', 'constraints'].includes(key) && typeof value === 'string' && value.trim()).map(([key, value]) => [key, cleanText(value, 420)]))
     };
-    projectMetadata.seasonPlan = createAdaptiveSeasonPlan(analysis);
+    projectMetadata.seasonPlan = envelope ? normalizeModelSeasonPlan(generated?.seasonPlan, analysis) : createAdaptiveSeasonPlan(analysis);
     selectedSeasonEpisode = Math.max(1, Math.min(Number(options.episodeNumber) || 1, projectMetadata.seasonPlan.episodes.length));
     seasonFilter = 'all';
     const episode = projectMetadata.seasonPlan.episodes.find(item => item.number === selectedSeasonEpisode) || projectMetadata.seasonPlan.episodes[0];
-    applyEpisodeProduction(episode, analysis, { render: false });
+    const episodeProduction = envelope ? normalizeModelEpisodeProduction(generated?.episodeProduction, episode, analysis) : null;
+    applyEpisodeProduction(episode, analysis, { render: false, production: episodeProduction, generation: envelope?.generation || null });
     syncCoreAssets({ render: false });
     seedCanvas();
     Object.keys(shots).forEach(id => syncShotAsset(id, { render: false }));
@@ -984,19 +1134,28 @@
     if (typeof renderProductionState === 'function') renderProductionState();
     if (typeof hydratePreviewState === 'function') hydratePreviewState();
     if (typeof renderProjectIdentity === 'function') renderProjectIdentity(analysis.title, selectedSeasonEpisode);
-    setText('.brief-status', `✓ ${build.characterCount} 人物 · ${build.sceneCount} 场景 · 8 分镜已实时更新`);
+    const generatorLabel = envelope?.generation?.modelName || '本地规则草稿';
+    setText('.brief-status', `✓ ${generatorLabel} · ${build.characterCount} 人物 · ${build.sceneCount} 场景 · 8 分镜已更新`);
+    if (!envelope?.generation) window.YingjieAI?.setStatus('本地规则草稿已生成 · 免费 · 本次未调用方舟模型', 'ready');
     scheduleProjectSave(0);
     return { ...build, analysis, episode, shotCount: Object.keys(shots).length, assetCount: productionState().assets.length };
   }
 
-  function loadEpisodeProduction(number) {
+  function loadEpisodeProduction(number, options = {}) {
     const state = productionState();
     const analysis = state.source.analysis || analyzeSourceText(state.source.text || $('#briefInput')?.value || DEFAULT_SEASON_PREMISE, state.mode);
     const plan = projectMetadata.seasonPlan || createAdaptiveSeasonPlan(analysis);
     const episode = plan.episodes.find(item => item.number === Number(number)) || plan.episodes[0];
     if (!episode) return null;
     selectedSeasonEpisode = episode.number;
-    applyEpisodeProduction(episode, analysis);
+    const envelope = options.modelResult || null;
+    const generated = modelProduction(envelope);
+    const episodeProduction = envelope ? normalizeModelEpisodeProduction(generated?.episodeProduction, episode, analysis) : null;
+    if (envelope?.generation) {
+      state.generations = [envelope.generation, ...state.generations.filter(item => item.id !== envelope.generation.id)].slice(0, 20);
+      state.source.generation = envelope.generation;
+    }
+    applyEpisodeProduction(episode, analysis, { production: episodeProduction, generation: envelope?.generation || null });
     syncCoreAssets({ render: false });
     Object.keys(shots).forEach(id => syncShotAsset(id, { render: false }));
     renderAssets();
@@ -1006,13 +1165,25 @@
     return { episode, shotCount: Object.keys(shots).length };
   }
 
-  function analyzeAndBuildProduction() {
+  async function analyzeAndBuildProduction() {
     const source = $('#sourceMaterial')?.value.trim() || $('#briefInput')?.value.trim();
     if (!source) return notify('请先粘贴原稿或填写创作指令。');
-    const result = buildProductionProject(source, { source: 'intake' });
-    addFeed('制作编排器', `已从原稿识别 ${result.characterCount} 个人物、${result.sceneCount} 个场景，生成 ${result.shotCount} 个当前集分镜，并建立 ${result.episodeCount} 集依赖图。`, 'purple');
-    notify('原稿已转为生产工程：故事总控、画布节点和素材引用已经联动。');
-    return result;
+    const button = $('#analyzeSource');
+    if (button?.disabled) return null;
+    if (button) { button.disabled = true; button.innerHTML = '<span>✦</span> 方舟模型正在解析…'; }
+    try {
+      const modelResult = await window.YingjieAI?.generateProject(source, { mode: productionState().mode });
+      const result = buildProductionProject(source, { source: 'intake', modelResult });
+      const modelName = modelResult?.generation?.modelName || '本地规则草稿';
+      addFeed('制作编排器', `${modelName} 已从原稿生成 ${result.characterCount} 个人物、${result.sceneCount} 个场景、${result.shotCount} 个当前集分镜和 ${result.episodeCount} 集依赖图。`, 'purple');
+      notify('原稿已转为模型生产工程：故事总控、画布节点和素材引用已经联动。');
+      return result;
+    } catch (error) {
+      notify(error.message || '方舟模型解析失败，请检查服务配置后重试。');
+      return null;
+    } finally {
+      if (button) { button.disabled = false; button.innerHTML = '<span>✦</span> 解析并建立生产工程'; }
+    }
   }
 
   function renderAnalysis() {
@@ -1025,7 +1196,7 @@
     const values = analysis ? [analysis.characters.length, analysis.scenes.length, analysis.dialogueCount, '工程已建立'] : [0, 0, 0, '未解析'];
     metrics.forEach((node, index) => { node.textContent = String(values[index]); });
     setText('#sourceAnalysisSummary', analysis
-      ? `《${analysis.title}》· ${analysis.style} · ${analysis.sourceLength} 字。人物、场景与分镜将按版本引用。`
+      ? `《${analysis.title}》· ${analysis.style} · ${analysis.sourceLength} 字 · ${analysis.generation?.modelName || '本地规则草稿'}。人物、场景与分镜将按版本引用。`
       : '等待原稿。解析后会建立人物、场景、分镜和素材引用。');
   }
 
