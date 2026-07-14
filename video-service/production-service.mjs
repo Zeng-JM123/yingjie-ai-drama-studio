@@ -2,20 +2,25 @@ import { randomUUID } from "node:crypto";
 
 const MODEL_PRICE_SOURCE = "https://www.volcengine.com/product/doubao";
 const MODEL_LIST_SOURCE = "https://www.volcengine.com/docs/82379/1330310";
+const DEFAULT_MODEL_ID = "doubao-seed-2.1-turbo";
+const MODEL_ID_PATTERN = /^[A-Za-z0-9._:-]{1,200}$/;
 
-const MODEL_DEFINITIONS = [
+const BUILTIN_MODEL_DEFINITIONS = [
   {
     id: "doubao-seed-2.1-turbo",
     env: "ARK_TEXT_MODEL_TURBO",
     defaultProviderModel: "doubao-seed-2-1-turbo",
     name: "Doubao Seed 2.1 Turbo",
     shortName: "Seed 2.1 Turbo",
+    vendor: "豆包",
+    category: "doubao",
     recommended: true,
     tier: "balanced",
     description: "速度、质量和成本更均衡，适合日常剧本拆解与批量分镜。",
     pricing: { inputPerMillion: 3, outputPerMillion: 15, currency: "CNY" },
     freeQuota: "50 万 tokens 试用额度",
-    billing: "trial_then_paid"
+    billing: "trial_then_paid",
+    supportsJsonMode: true
   },
   {
     id: "doubao-seed-2.1-pro",
@@ -23,12 +28,15 @@ const MODEL_DEFINITIONS = [
     defaultProviderModel: "doubao-seed-2-1-pro",
     name: "Doubao Seed 2.1 Pro",
     shortName: "Seed 2.1 Pro",
+    vendor: "豆包",
+    category: "doubao",
     recommended: false,
     tier: "quality",
     description: "复杂人物关系、长线伏笔和高要求结构化创作优先。",
     pricing: { inputPerMillion: 6, outputPerMillion: 30, currency: "CNY" },
     freeQuota: "50 万 tokens 试用额度",
-    billing: "trial_then_paid"
+    billing: "trial_then_paid",
+    supportsJsonMode: true
   },
   {
     id: "doubao-seed-evolving",
@@ -36,38 +44,155 @@ const MODEL_DEFINITIONS = [
     defaultProviderModel: "doubao-seed-evolving",
     name: "Doubao Seed Evolving",
     shortName: "Seed Evolving",
+    vendor: "豆包",
+    category: "doubao",
     recommended: false,
     tier: "agent",
     description: "持续演进的 Agent 模型，适合复杂生产规则和多步任务编排。",
     pricing: { inputPerMillion: 6, outputPerMillion: 30, currency: "CNY" },
     freeQuota: "50 万 tokens 试用额度",
-    billing: "trial_then_paid"
+    billing: "trial_then_paid",
+    supportsJsonMode: true
+  },
+  {
+    id: "deepseek-v3.2",
+    env: "ARK_TEXT_MODEL_DEEPSEEK",
+    name: "DeepSeek V3.2",
+    shortName: "DeepSeek V3.2",
+    vendor: "DeepSeek",
+    category: "third-party",
+    recommended: false,
+    tier: "reasoning",
+    description: "适合复杂因果、悬疑推理和长线伏笔校验。",
+    pricing: null,
+    priceLabel: "方舟控制台计价",
+    freeQuota: "免费与试用额度以方舟账号为准",
+    billing: "account",
+    supportsJsonMode: false
+  },
+  {
+    id: "kimi-k2.5",
+    env: "ARK_TEXT_MODEL_KIMI",
+    name: "Kimi K2.5",
+    shortName: "Kimi K2.5",
+    vendor: "Moonshot AI",
+    category: "third-party",
+    recommended: false,
+    tier: "long-context",
+    description: "适合长原稿、全季上下文和跨集连续性整理。",
+    pricing: null,
+    priceLabel: "方舟控制台计价",
+    freeQuota: "免费与试用额度以方舟账号为准",
+    billing: "account",
+    supportsJsonMode: false
+  },
+  {
+    id: "glm-4.7",
+    env: "ARK_TEXT_MODEL_GLM",
+    name: "GLM-4.7",
+    shortName: "GLM-4.7",
+    vendor: "智谱 AI",
+    category: "third-party",
+    recommended: false,
+    tier: "structured",
+    description: "适合结构化剧本拆解、角色关系和生产任务规划。",
+    pricing: null,
+    priceLabel: "方舟控制台计价",
+    freeQuota: "免费与试用额度以方舟账号为准",
+    billing: "account",
+    supportsJsonMode: false
   }
 ];
 
+function optionalText(value, fallback, maxLength = 120) {
+  return typeof value === "string" && value.trim() ? value.trim().slice(0, maxLength) : fallback;
+}
+
+function customPricing(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const inputPerMillion = Number(value.inputPerMillion);
+  const outputPerMillion = Number(value.outputPerMillion);
+  if (!Number.isFinite(inputPerMillion) || inputPerMillion < 0 || !Number.isFinite(outputPerMillion) || outputPerMillion < 0) return null;
+  return { inputPerMillion, outputPerMillion, currency: value.currency === "USD" ? "USD" : "CNY" };
+}
+
+function customModelConfig(env) {
+  const raw = typeof env.ARK_TEXT_MODELS_JSON === "string" ? env.ARK_TEXT_MODELS_JSON.trim() : "";
+  if (!raw) return { models: [], warnings: [] };
+  let parsed;
+  try { parsed = JSON.parse(raw); }
+  catch { return { models: [], warnings: ["ARK_TEXT_MODELS_JSON 不是有效 JSON，已忽略自定义模型。"] }; }
+  if (!Array.isArray(parsed)) return { models: [], warnings: ["ARK_TEXT_MODELS_JSON 必须是模型数组，已忽略自定义模型。"] };
+  const warnings = [];
+  const models = parsed.flatMap((item, index) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      warnings.push(`自定义模型第 ${index + 1} 项不是对象，已忽略。`);
+      return [];
+    }
+    const id = optionalText(item.id, "", 80);
+    const providerModel = optionalText(item.providerModel, "", 200);
+    if (!MODEL_ID_PATTERN.test(id) || !MODEL_ID_PATTERN.test(providerModel)) {
+      warnings.push(`自定义模型第 ${index + 1} 项缺少有效 id 或 providerModel，已忽略。`);
+      return [];
+    }
+    return [{
+      id,
+      providerModel,
+      name: optionalText(item.name, id, 80),
+      shortName: optionalText(item.shortName, item.name || id, 50),
+      vendor: optionalText(item.vendor, "方舟自定义", 50),
+      category: "custom",
+      recommended: item.recommended === true,
+      tier: optionalText(item.tier, "custom", 30),
+      description: optionalText(item.description, "由部署环境配置的方舟文本生成模型。", 180),
+      pricing: customPricing(item.pricing),
+      priceLabel: optionalText(item.priceLabel, "方舟控制台计价", 60),
+      freeQuota: optionalText(item.freeQuota, "免费与试用额度以方舟账号为准", 80),
+      billing: ["free", "paid", "trial_then_paid", "account"].includes(item.billing) ? item.billing : "account",
+      supportsJsonMode: item.supportsJsonMode === true,
+      source: "environment"
+    }];
+  });
+  return { models, warnings };
+}
+
+function resolvedModelDefinitions(env = process.env) {
+  const custom = customModelConfig(env);
+  const modelsById = new Map(BUILTIN_MODEL_DEFINITIONS.map(model => [model.id, {
+    ...model,
+    providerModel: optionalText(env[model.env], model.defaultProviderModel || "", 200),
+    source: "builtin"
+  }]));
+  custom.models.forEach(model => modelsById.set(model.id, { ...(modelsById.get(model.id) || {}), ...model }));
+  return { models: [...modelsById.values()], warnings: custom.warnings };
+}
+
 export function modelCatalog(configured = false, env = process.env) {
+  const resolved = resolvedModelDefinitions(env);
+  const models = resolved.models.map(({ env: _env, defaultProviderModel: _defaultProviderModel, providerModel, supportsJsonMode: _supportsJsonMode, ...model }) => ({
+    ...model,
+    available: configured && Boolean(providerModel),
+    endpointConfigured: Boolean(providerModel)
+  }));
+  const defaultModel = models.find(model => model.recommended && model.available)?.id || models.find(model => model.available)?.id || "local-rules";
   return {
     provider: "volcengine-ark",
     configured,
-    updatedAt: "2026-07-13",
-    priceNotice: "均为按量付费模型；新账号试用额度需先在方舟开通对应模型，额度和活动以账号控制台为准。",
+    updatedAt: "2026-07-15",
+    defaultModel,
+    priceNotice: "模型是否免费、试用额度和实际单价以方舟账号与接入点为准；页面中的已知价格仅作参考。",
     priceSource: MODEL_PRICE_SOURCE,
     listSource: MODEL_LIST_SOURCE,
-    models: MODEL_DEFINITIONS.map(({ env: envName, defaultProviderModel, ...model }) => ({
-      ...model,
-      available: configured,
-      endpointConfigured: Boolean(env[envName] || defaultProviderModel)
-    }))
+    configurationWarnings: resolved.warnings,
+    models
   };
 }
 
 export function selectedModel(modelId, env = process.env) {
-  const definition = MODEL_DEFINITIONS.find(model => model.id === modelId);
+  const definition = resolvedModelDefinitions(env).models.find(model => model.id === modelId);
   if (!definition) throw serviceError("不支持所选方舟模型。", 400);
-  return {
-    ...definition,
-    providerModel: env[definition.env] || definition.defaultProviderModel
-  };
+  if (!definition.providerModel) throw serviceError(`所选模型 ${definition.name} 尚未配置方舟 Model ID 或 Endpoint ID。`, 503);
+  return definition;
 }
 
 function cleanInput(input) {
@@ -81,7 +206,7 @@ function cleanInput(input) {
     ? input.episodeContext
     : null;
   if (episodeContext && JSON.stringify(episodeContext).length > 12_000) throw serviceError("分集上下文内容过大。", 400);
-  return { source, mode, scope, episodeNumber, episodeContext, model: String(input.model || "doubao-seed-2.1-turbo") };
+  return { source, mode, scope, episodeNumber, episodeContext, model: String(input.model || DEFAULT_MODEL_ID) };
 }
 
 function modeDescription(mode) {
@@ -195,18 +320,19 @@ export async function generateProductionWithArk(rawInput, options = {}) {
   const apiKey = options.apiKey || process.env.ARK_API_KEY;
   if (!apiKey) throw serviceError("文本模型服务未配置 ARK_API_KEY。", 503);
   const maxTokens = Math.max(2_000, Math.min(32_000, Number(options.maxTokens || process.env.ARK_TEXT_MAX_TOKENS) || (input.scope === "episode" ? 8_000 : 24_000)));
+  const requestBody = {
+    model: model.providerModel,
+    messages: [
+      { role: "system", content: "你是严谨的短剧生产系统，只返回符合用户约定结构的 JSON。" },
+      { role: "user", content: buildProductionPrompt(input) }
+    ],
+    max_tokens: maxTokens
+  };
+  if (model.supportsJsonMode) requestBody.response_format = { type: "json_object" };
   const response = await fetchImpl("https://ark.cn-beijing.volces.com/api/v3/chat/completions", {
     method: "POST",
     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
-    body: JSON.stringify({
-      model: model.providerModel,
-      messages: [
-        { role: "system", content: "你是严谨的短剧生产系统，只返回符合用户约定结构的 JSON。" },
-        { role: "user", content: buildProductionPrompt(input) }
-      ],
-      response_format: { type: "json_object" },
-      max_tokens: maxTokens
-    }),
+    body: JSON.stringify(requestBody),
     signal: AbortSignal.timeout(input.scope === "episode" ? 90_000 : 180_000)
   });
   const payload = await response.json().catch(() => ({}));

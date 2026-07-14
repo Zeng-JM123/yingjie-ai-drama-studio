@@ -2,7 +2,9 @@
 
 映界的网页部署在 GitHub Pages，属于公开静态站点。因此方舟和 Seedance 的 API Key **绝不能**放入 `app.js`、`runtime-config.js`、GitHub Pages 环境变量或任何会被浏览器下载的文件中。本仓库通过 `video-service/` 充当唯一的服务端代理。
 
-创作输入使用 `POST /v1/production/generate` 调用所选方舟文本模型，返回故事分析、角色、场景、分集计划和 8 镜分镜 JSON；返回中的模型 ID、方舟请求 ID 与 Token 用量会写入项目元数据。模型下拉目录来自 `GET /v1/models`。当前展示的 Seed 2.1 Turbo、Seed 2.1 Pro 和 Seed Evolving 都是按量付费模型，官方页面列出的 50 万 tokens 属于试用额度，不代表永久免费。
+创作输入使用 `POST /v1/production/generate` 调用所选方舟文本模型，返回故事分析、角色、场景、分集计划和 8 镜分镜 JSON；返回中的模型 ID、方舟请求 ID 与 Token 用量会写入项目元数据。模型下拉目录来自 `GET /v1/models`，内置豆包、DeepSeek、Kimi、GLM，并允许通过服务端配置加入任意方舟 Model ID / Endpoint ID。未开通的模型只展示能力说明，不能提交请求。
+
+模型是否免费、试用额度和实际单价以方舟账号控制台为准。页面只对有稳定官方价格的模型展示数字单价；第三方与自定义接入点显示“方舟控制台计价”，避免把活动价或 Coding Plan 套餐误写成固定价格。豆包页面列出的 50 万 tokens 属于试用额度，不代表永久免费。[方舟模型列表](https://www.volcengine.com/docs/82379/1330310) · [模型服务计费说明](https://www.volcengine.com/docs/82379/1544681)
 
 > 你已在对话中粘贴过密钥。为降低暴露风险，建议在完成部署后立即在火山方舟控制台轮换该密钥，并只将新密钥保存到部署平台的 Secret/Environment Variables。
 
@@ -34,6 +36,10 @@ ARK_API_KEY=<在部署平台 Secret 中填写>
 ARK_TEXT_MODEL_TURBO=doubao-seed-2-1-turbo
 ARK_TEXT_MODEL_PRO=doubao-seed-2-1-pro
 ARK_TEXT_MODEL_EVOLVING=doubao-seed-evolving
+ARK_TEXT_MODEL_DEEPSEEK=ep-替换为账号中的接入点
+ARK_TEXT_MODEL_KIMI=ep-替换为账号中的接入点
+ARK_TEXT_MODEL_GLM=ep-替换为账号中的接入点
+ARK_TEXT_MODELS_JSON='[{"id":"my-story-model","providerModel":"ep-替换为接入点","name":"我的故事模型","vendor":"方舟自定义","billing":"account","priceLabel":"方舟控制台计价"}]'
 ARK_TEXT_MAX_TOKENS=24000
 ARK_VIDEO_ENDPOINT_ID=ep-20260712014412-l4ncj
 CORS_ORIGINS=https://zeng-jm123.github.io
@@ -63,7 +69,9 @@ npm start
 curl http://localhost:8787/healthz
 ```
 
-正常时会返回 `textConfigured` 和 `videoConfigured`。文本生成只要求 `ARK_API_KEY`；视频生成同时要求 `ARK_API_KEY` 和 `ARK_VIDEO_ENDPOINT_ID`。
+正常时会返回 `textConfigured` 和 `videoConfigured`。文本生成至少要求 `ARK_API_KEY`，所选第三方或自定义模型还必须配置真实 Model ID / Endpoint ID；视频生成同时要求 `ARK_API_KEY` 和 `ARK_VIDEO_ENDPOINT_ID`。
+
+`ARK_TEXT_MODEL_DEEPSEEK`、`ARK_TEXT_MODEL_KIMI` 和 `ARK_TEXT_MODEL_GLM` 填写的是当前方舟账号真实可调用的 Model ID 或 Endpoint ID，不要照抄展示名称。`ARK_TEXT_MODELS_JSON` 是服务端白名单，数组中每项至少需要 `id`、`providerModel` 和 `name`；还可设置 `vendor`、`description`、`billing`、`priceLabel`、`pricing` 与 `supportsJsonMode`。浏览器只能选择白名单中的模型，不能任意指定高成本模型。
 
 ## 发布视频网关
 
@@ -80,7 +88,7 @@ curl http://localhost:8787/healthz
 | 健康检查 | `GET /healthz` |
 | 公开端口 | 平台注入的 `PORT`（本地默认 `8787`） |
 | 私密变量 | `ARK_API_KEY`、`ARK_VIDEO_ENDPOINT_ID` |
-| 模型变量 | `ARK_TEXT_MODEL_TURBO`、`ARK_TEXT_MODEL_PRO`、`ARK_TEXT_MODEL_EVOLVING`、`ARK_TEXT_MAX_TOKENS` |
+| 模型变量 | `ARK_TEXT_MODEL_*`、`ARK_TEXT_MODELS_JSON`、`ARK_TEXT_MAX_TOKENS` |
 | 普通变量 | `CORS_ORIGINS`、`DATABASE_PATH`、`JOB_LIMIT_MAX`、`JOB_LIMIT_WINDOW_SECONDS`、`TRUST_PROXY` |
 | 持久化卷 | 挂载到 `/data` |
 

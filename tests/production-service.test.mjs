@@ -1,16 +1,43 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { buildProductionPrompt, generateProductionWithArk, modelCatalog, parseProductionResponse } from "../video-service/production-service.mjs";
+import { buildProductionPrompt, generateProductionWithArk, modelCatalog, parseProductionResponse, selectedModel } from "../video-service/production-service.mjs";
 
-test("model catalog exposes trial quota and paid unit prices", () => {
+test("model catalog exposes multi-vendor models and known unit prices", () => {
   const catalog = modelCatalog(true, {});
-  assert.equal(catalog.models.length, 3);
+  assert.equal(catalog.models.length, 6);
   assert.equal(catalog.models[0].recommended, true);
   assert.equal(catalog.models[0].billing, "trial_then_paid");
   assert.equal(catalog.models[0].freeQuota, "50 万 tokens 试用额度");
   assert.equal(catalog.models[0].pricing.inputPerMillion, 3);
   assert.equal(catalog.models[1].pricing.outputPerMillion, 30);
+  assert.equal(catalog.models.find(model => model.id === "deepseek-v3.2").vendor, "DeepSeek");
+  assert.equal(catalog.models.find(model => model.id === "deepseek-v3.2").available, false);
+});
+
+test("configured third-party and custom Ark endpoints become selectable", () => {
+  const env = {
+    ARK_TEXT_MODEL_DEEPSEEK: "ep-deepseek-test",
+    ARK_TEXT_MODELS_JSON: JSON.stringify([{
+      id: "my-story-model",
+      providerModel: "ep-story-test",
+      name: "我的故事模型",
+      vendor: "自定义工作室",
+      billing: "paid",
+      priceLabel: "项目套餐计费"
+    }])
+  };
+  const catalog = modelCatalog(true, env);
+  assert.equal(catalog.models.find(model => model.id === "deepseek-v3.2").available, true);
+  assert.equal(catalog.models.find(model => model.id === "my-story-model").category, "custom");
+  assert.equal(catalog.models.find(model => model.id === "my-story-model").priceLabel, "项目套餐计费");
+  assert.equal(selectedModel("my-story-model", env).providerModel, "ep-story-test");
+});
+
+test("invalid custom catalog entries are ignored with a configuration warning", () => {
+  const catalog = modelCatalog(true, { ARK_TEXT_MODELS_JSON: "not-json" });
+  assert.equal(catalog.models.length, 6);
+  assert.equal(catalog.configurationWarnings.length, 1);
 });
 
 test("project prompt requires a complete model-authored production contract", () => {
@@ -48,6 +75,7 @@ test("Ark generation returns provenance and token usage", async () => {
       fetchImpl: async (_url, request) => {
         const body = JSON.parse(request.body);
         assert.equal(body.model, "ep-test-text");
+        assert.deepEqual(body.response_format, { type: "json_object" });
         assert.equal(request.headers.Authorization, "Bearer test-key");
         return {
           ok: true,
@@ -65,4 +93,29 @@ test("Ark generation returns provenance and token usage", async () => {
   assert.equal(response.generation.modelId, "doubao-seed-2.1-turbo");
   assert.equal(response.generation.totalTokens, 460);
   assert.equal(response.production.analysis.title, "倒计时合约");
+});
+
+test("models without JSON mode still use the shared production contract", async () => {
+  const response = await generateProductionWithArk(
+    { source: "四位老友在台风夜争夺一封遗嘱。", mode: "single", model: "deepseek-v3.2" },
+    {
+      apiKey: "test-key",
+      env: { ARK_TEXT_MODEL_DEEPSEEK: "ep-deepseek-test" },
+      fetchImpl: async (_url, request) => {
+        const body = JSON.parse(request.body);
+        assert.equal(body.model, "ep-deepseek-test");
+        assert.equal("response_format" in body, false);
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            choices: [{ message: { content: JSON.stringify({ analysis: { title: "台风遗嘱" }, seasonPlan: { episodes: [{}] }, episodeProduction: { shots: Array.from({ length: 8 }, () => ({})) } }) } }],
+            usage: { total_tokens: 200 }
+          })
+        };
+      }
+    }
+  );
+  assert.equal(response.generation.modelName, "DeepSeek V3.2");
+  assert.equal(response.generation.providerModel, "ep-deepseek-test");
 });

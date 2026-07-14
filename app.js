@@ -169,18 +169,21 @@ let activities = [
 let selectedSeasonEpisode = 1;
 let seasonFilter = 'all';
 let availableTextModels = [
-  { id: 'doubao-seed-2.1-turbo', name: 'Doubao Seed 2.1 Turbo', shortName: 'Seed 2.1 Turbo', recommended: true, description: '日常剧本与分镜推荐', pricing: { inputPerMillion: 3, outputPerMillion: 15 }, freeQuota: '50 万 tokens 试用额度', billing: 'trial_then_paid', available: false },
-  { id: 'doubao-seed-2.1-pro', name: 'Doubao Seed 2.1 Pro', shortName: 'Seed 2.1 Pro', description: '复杂长线剧情与高质量结构', pricing: { inputPerMillion: 6, outputPerMillion: 30 }, freeQuota: '50 万 tokens 试用额度', billing: 'trial_then_paid', available: false },
-  { id: 'doubao-seed-evolving', name: 'Doubao Seed Evolving', shortName: 'Seed Evolving', description: 'Agent 与复杂任务编排', pricing: { inputPerMillion: 6, outputPerMillion: 30 }, freeQuota: '50 万 tokens 试用额度', billing: 'trial_then_paid', available: false }
+  { id: 'doubao-seed-2.1-turbo', name: 'Doubao Seed 2.1 Turbo', shortName: 'Seed 2.1 Turbo', vendor: '豆包', category: 'doubao', recommended: true, description: '日常剧本与分镜推荐', pricing: { inputPerMillion: 3, outputPerMillion: 15 }, freeQuota: '50 万 tokens 试用额度', billing: 'trial_then_paid', available: false, endpointConfigured: false },
+  { id: 'doubao-seed-2.1-pro', name: 'Doubao Seed 2.1 Pro', shortName: 'Seed 2.1 Pro', vendor: '豆包', category: 'doubao', description: '复杂长线剧情与高质量结构', pricing: { inputPerMillion: 6, outputPerMillion: 30 }, freeQuota: '50 万 tokens 试用额度', billing: 'trial_then_paid', available: false, endpointConfigured: false },
+  { id: 'doubao-seed-evolving', name: 'Doubao Seed Evolving', shortName: 'Seed Evolving', vendor: '豆包', category: 'doubao', description: 'Agent 与复杂任务编排', pricing: { inputPerMillion: 6, outputPerMillion: 30 }, freeQuota: '50 万 tokens 试用额度', billing: 'trial_then_paid', available: false, endpointConfigured: false },
+  { id: 'deepseek-v3.2', name: 'DeepSeek V3.2', shortName: 'DeepSeek V3.2', vendor: 'DeepSeek', category: 'third-party', description: '复杂因果与悬疑推理', pricing: null, priceLabel: '方舟控制台计价', freeQuota: '免费与试用额度以方舟账号为准', billing: 'account', available: false, endpointConfigured: false },
+  { id: 'kimi-k2.5', name: 'Kimi K2.5', shortName: 'Kimi K2.5', vendor: 'Moonshot AI', category: 'third-party', description: '长原稿与跨集连续性', pricing: null, priceLabel: '方舟控制台计价', freeQuota: '免费与试用额度以方舟账号为准', billing: 'account', available: false, endpointConfigured: false },
+  { id: 'glm-4.7', name: 'GLM-4.7', shortName: 'GLM-4.7', vendor: '智谱 AI', category: 'third-party', description: '结构化拆解与生产规划', pricing: null, priceLabel: '方舟控制台计价', freeQuota: '免费与试用额度以方舟账号为准', billing: 'account', available: false, endpointConfigured: false }
 ];
-let textModelsConfigured = false;
+let modelCatalogDefault = 'local-rules';
 
 function selectedProductionMode() {
   return window.YingjieProduction?.exportState()?.mode || $('.production-modes button.active')?.dataset.productionMode || 'series';
 }
 
 function selectedTextModelId() {
-  return $('#productionModel')?.value || projectMetadata.aiModel || 'doubao-seed-2.1-turbo';
+  return $('#productionModel')?.value || projectMetadata.aiModel || modelCatalogDefault;
 }
 
 function textModelById(id) {
@@ -194,33 +197,74 @@ function setModelRunStatus(message, state = '') {
   target.className = state;
 }
 
+function modelPriceLabel(model) {
+  if (model.billing === 'free') return '免费';
+  const input = Number(model.pricing?.inputPerMillion);
+  const output = Number(model.pricing?.outputPerMillion);
+  if (Number.isFinite(input) && Number.isFinite(output)) {
+    const symbol = model.pricing?.currency === 'USD' ? '$' : '¥';
+    return `${symbol}${input}/${output}/百万`;
+  }
+  return model.priceLabel || '方舟控制台计价';
+}
+
 function renderModelSelection(preferredId = projectMetadata.aiModel) {
   const select = $('#productionModel');
   if (!select) return;
-  const current = preferredId || select.value || 'doubao-seed-2.1-turbo';
+  const current = preferredId || modelCatalogDefault;
   select.replaceChildren();
-  availableTextModels.forEach(model => {
-    const option = document.createElement('option');
-    option.value = model.id;
-    const price = `¥${model.pricing.inputPerMillion}+${model.pricing.outputPerMillion}/百万`;
-    option.textContent = `${model.shortName || model.name}${model.recommended ? ' · 推荐' : ''} · ${price}`;
-    select.append(option);
+  const groups = [
+    ['doubao', '豆包模型'],
+    ['third-party', '方舟第三方模型'],
+    ['custom', '账号自定义模型']
+  ];
+  groups.forEach(([category, label]) => {
+    const models = availableTextModels.filter(model => (model.category || 'custom') === category);
+    if (!models.length) return;
+    const group = document.createElement('optgroup');
+    group.label = label;
+    models.forEach(model => {
+      const option = document.createElement('option');
+      option.value = model.id;
+      option.disabled = !model.available;
+      const availability = model.available ? '' : model.endpointConfigured ? ' · 网关未连接' : ' · 未配置';
+      option.textContent = `${model.shortName || model.name}${model.recommended ? ' · 推荐' : ''} · ${modelPriceLabel(model)}${availability}`;
+      group.append(option);
+    });
+    select.append(group);
   });
+  const localGroup = document.createElement('optgroup');
+  localGroup.label = '离线模式';
   const localOption = document.createElement('option');
   localOption.value = 'local-rules';
   localOption.textContent = '本地规则草稿 · 免费 · 不调用模型';
-  select.append(localOption);
-  select.value = [...select.options].some(option => option.value === current) ? current : 'doubao-seed-2.1-turbo';
+  localGroup.append(localOption);
+  select.append(localGroup);
+  const preferredModel = textModelById(current);
+  const fallbackModel = textModelById(modelCatalogDefault)?.available
+    ? modelCatalogDefault
+    : availableTextModels.find(model => model.available)?.id;
+  select.value = preferredModel?.available ? current : fallbackModel || 'local-rules';
   renderSelectedModelBilling();
 }
 
 function renderSelectedModelBilling() {
   const id = selectedTextModelId();
-  if (id === 'local-rules') return setModelRunStatus('永久免费 · 仅生成规则草稿，不调用方舟模型。', '');
+  if (id === 'local-rules') {
+    const hasAvailableRemoteModel = availableTextModels.some(model => model.available);
+    const message = hasAvailableRemoteModel
+      ? '永久免费 · 仅生成规则草稿，不调用方舟模型。'
+      : '模型服务未连接，已自动切换到本地规则草稿 · 免费，不调用模型。';
+    return setModelRunStatus(message, hasAvailableRemoteModel ? '' : 'ready');
+  }
   const model = textModelById(id);
   if (!model) return setModelRunStatus('方舟模型信息暂不可用。', 'error');
-  const connection = textModelsConfigured ? '模型服务已连接' : '模型服务未连接';
-  setModelRunStatus(`${model.freeQuota}；用完后输入 ¥${model.pricing.inputPerMillion}/百万、输出 ¥${model.pricing.outputPerMillion}/百万 tokens · ${connection}`, textModelsConfigured ? 'ready' : 'error');
+  const connection = model.available ? '可调用' : model.endpointConfigured ? '模型网关未连接' : '未配置 Model ID / Endpoint ID';
+  const symbol = model.pricing?.currency === 'USD' ? '$' : '¥';
+  const pricing = model.pricing
+    ? `输入 ${symbol}${model.pricing.inputPerMillion}/百万、输出 ${symbol}${model.pricing.outputPerMillion}/百万 tokens`
+    : modelPriceLabel(model);
+  setModelRunStatus(`${model.vendor || '方舟'} · ${model.freeQuota || '额度以方舟账号为准'} · ${pricing} · ${connection}`, model.available ? 'ready' : 'error');
 }
 
 async function initializeModelCatalog() {
@@ -237,23 +281,30 @@ async function initializeModelCatalog() {
     const catalog = await response.json();
     if (!response.ok || !Array.isArray(catalog.models)) throw new Error(catalog.error || '模型目录读取失败');
     availableTextModels = catalog.models;
-    textModelsConfigured = Boolean(catalog.configured);
-    renderModelSelection(projectMetadata.aiModel || select?.value);
+    modelCatalogDefault = catalog.defaultModel || 'local-rules';
+    renderModelSelection(projectMetadata.aiModel || modelCatalogDefault);
   } catch {
-    textModelsConfigured = false;
     renderSelectedModelBilling();
   }
 }
 
 async function requestAIProduction(source, options = {}) {
-  const model = selectedTextModelId();
+  let model = selectedTextModelId();
+  if (!studioGateway && model !== 'local-rules') {
+    renderModelSelection('local-rules');
+    model = 'local-rules';
+  }
   projectMetadata.aiModel = model;
   if (model === 'local-rules') {
     setModelRunStatus('正在使用本地规则草稿；本次不会调用模型。', 'running');
     return null;
   }
-  if (!studioGateway) throw new Error('方舟模型服务未连接。请先配置 studioApiBaseUrl，或明确选择“本地规则草稿”。');
   const modelInfo = textModelById(model);
+  if (!modelInfo?.available) {
+    const message = modelInfo?.endpointConfigured ? '方舟模型网关尚未连接。' : '所选模型尚未配置方舟 Model ID 或 Endpoint ID。';
+    setModelRunStatus(message, 'error');
+    throw new Error(message);
+  }
   setModelRunStatus(`正在调用方舟 ${modelInfo?.name || model} 生成${options.scope === 'episode' ? '分集分镜' : '故事、人物、场景和分镜'}…`, 'running');
   let response;
   try {
