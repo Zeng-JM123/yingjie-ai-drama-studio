@@ -1,0 +1,37 @@
+README.md
+  s_c069429726c62c::t_5684875ad526d9 38
+app.js
+  s_c069429726c62c::t_f28707a32ac8de 171-174,176,254-257,269-299,307-310
+index.html
+  s_c069429726c62c::t_04511dfb6e5c1e 70,333
+tests/model-fallback.test.mjs
+  s_c069429726c62c::t_fe5239883f75f0 59,62-63
+tests/production-service.test.mjs
+  s_c069429726c62c::t_297d36ff13955d 4,43-58,94,96
+video-service/.env.example
+  s_c069429726c62c::t_c4c642b105d977 3-6,13-14
+video-service/deploy/volcengine/.env.example
+  s_c069429726c62c::t_2cef002a42475c 7-10,16
+video-service/production-service.mjs
+  s_c069429726c62c::t_79b071d96f2259 5,23-24,169,171-174,176-180,186,188-191,200-223,355-360,370,375
+video-service/server.mjs
+  s_c069429726c62c::t_b70b6290eba0e7 4,209-214
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "fc707ed3bf04b265a0bf844a920053884b45acd6",
+  "prompts": {},
+  "sessions": {
+    "s_c069429726c62c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f616e-17cf-7ef2-ba22-58db9aaf1f0c",
+        "model": "unknown"
+      },
+      "human_author": "zengjiaming <zengjiaming.alex@bytedance.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
