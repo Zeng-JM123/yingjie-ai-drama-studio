@@ -1,6 +1,6 @@
 /* Public GitHub Pages configuration. Never put a secret in this file. */
 const localHost = String(window.location.hostname || "").toLowerCase().replace(/\.$/, "");
-const localGateway = ["localhost", "127.0.0.1", "::1", "[::1]"].includes(localHost)
+const localGateway = (["localhost", "127.0.0.1", "::1", "[::1]"].includes(localHost) || window.location.protocol === "file:")
   ? "http://127.0.0.1:8787"
   : "";
 

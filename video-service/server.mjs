@@ -18,6 +18,7 @@ const allowedOrigins = new Set(
     .split(",").map(origin => origin.trim()).filter(Boolean)
 );
 const allowLoopbackOrigins = process.env.ALLOW_LOOPBACK_ORIGINS === "true";
+const allowFileOrigin = process.env.ALLOW_FILE_ORIGIN === "true";
 const supportedRatios = new Set(["9:16", "16:9", "1:1", "3:4", "4:3", "21:9", "adaptive"]);
 const supportedDurations = new Set([2, 3, 4, 5, 6, 8, 10, 12]);
 
@@ -33,6 +34,7 @@ function httpError(message, status = 400) {
 }
 
 function isAllowedOrigin(origin) {
+  if (origin === "null") return allowFileOrigin;
   if (allowedOrigins.has(origin)) return true;
   if (!allowLoopbackOrigins) return false;
   try {

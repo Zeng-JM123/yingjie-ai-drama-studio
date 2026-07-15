@@ -130,7 +130,7 @@ const seasonBlueprint = [
 
 const toast = $('#toast');
 const runtimeConfig = window.YINGJIE_CONFIG || {};
-const localPreviewGateway = ['localhost', '127.0.0.1', '::1', '[::1]'].includes(window.location.hostname)
+const localPreviewGateway = (['localhost', '127.0.0.1', '::1', '[::1]'].includes(String(window.location.hostname || '').toLowerCase().replace(/\.$/, '')) || window.location.protocol === 'file:')
   ? 'http://127.0.0.1:8787'
   : '';
 const config = {
