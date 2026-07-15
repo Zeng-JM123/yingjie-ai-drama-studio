@@ -1,0 +1,31 @@
+app.js
+  s_c069429726c62c::t_30e0b275dd388e 133
+index.html
+  s_c069429726c62c::t_51c850fa87c745 331,333
+runtime-config.js
+  s_c069429726c62c::t_5a3440f53b6ff2 3
+video-service/.env.example
+  s_c069429726c62c::t_13ccc646e5161d 26-27
+video-service/deploy/volcengine/.env.example
+  s_c069429726c62c::t_1b36f37f14f52e 27-28
+video-service/server.mjs
+  s_c069429726c62c::t_18ecdf764f60b0 21,37
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "f82b0b95238e7a358ccf1e2128cf9bef1fab7cc6",
+  "prompts": {},
+  "sessions": {
+    "s_c069429726c62c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f616e-17cf-7ef2-ba22-58db9aaf1f0c",
+        "model": "unknown"
+      },
+      "human_author": "zengjiaming <zengjiaming.alex@bytedance.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
