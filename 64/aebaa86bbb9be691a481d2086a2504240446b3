@@ -1,0 +1,23 @@
+index.html
+  s_c069429726c62c::t_dcd50b4ba8bcb1 331,333
+runtime-config.js
+  s_c069429726c62c::t_55feb7c44b19b6 2-6,8-9,11-12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "64aebaa86bbb9be691a481d2086a2504240446b3",
+  "prompts": {},
+  "sessions": {
+    "s_c069429726c62c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f616e-17cf-7ef2-ba22-58db9aaf1f0c",
+        "model": "unknown"
+      },
+      "human_author": "zengjiaming <zengjiaming.alex@bytedance.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
