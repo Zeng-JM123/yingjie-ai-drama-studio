@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import { resolve } from "node:path";
 import { createProjectStore } from "./store.mjs";
-import { generateProductionWithArk, modelCatalog } from "./production-service.mjs";
+import { fetchArkModelCatalog, generateProductionWithArk, modelCatalog } from "./production-service.mjs";
 
 const port = Number(process.env.PORT || 8787);
 const arkBaseUrl = "https://ark.cn-beijing.volces.com/api/v3";
@@ -206,7 +206,12 @@ const server = createServer(async (request, response) => {
     if (request.method === "GET" && jobsMatch) return respond(response, 200, { jobs: projectStore.listVideoJobs(jobsMatch[1]) }, origin);
 
     if (request.method === "GET" && url.pathname === "/v1/models") {
-      return respond(response, 200, modelCatalog(textConfigured()), origin, { "Cache-Control": "public, max-age=1800" });
+      if (!textConfigured()) {
+        const catalog = modelCatalog(false);
+        catalog.models = [];
+        return respond(response, 200, catalog, origin);
+      }
+      return respond(response, 200, await fetchArkModelCatalog(), origin);
     }
     if (request.method === "POST" && url.pathname === "/v1/production/generate") {
       if (!textConfigured()) return respond(response, 503, { error: "文本模型服务未配置。请设置 ARK_API_KEY。" }, origin);

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { buildProductionPrompt, generateProductionWithArk, modelCatalog, parseProductionResponse, selectedModel } from "../video-service/production-service.mjs";
+import { buildProductionPrompt, fetchArkModelCatalog, generateProductionWithArk, modelCatalog, parseProductionResponse, selectedModel } from "../video-service/production-service.mjs";
 
 test("model catalog exposes multi-vendor models and known unit prices", () => {
   const catalog = modelCatalog(true, {});
@@ -40,6 +40,22 @@ test("invalid custom catalog entries are ignored with a configuration warning", 
   assert.equal(catalog.configurationWarnings.length, 1);
 });
 
+test("live Ark discovery only makes currently returned model IDs selectable", async () => {
+  const catalog = await fetchArkModelCatalog({
+    apiKey: "test-key",
+    env: { ARK_TEXT_MODEL_TURBO: "doubao-seed-2-1-turbo-260628", ARK_TEXT_MODEL_PRO: "doubao-seed-2-1-pro-260628" },
+    baseUrl: "https://ark.example.com/api/v3",
+    fetchImpl: async (url, request) => {
+      assert.equal(url, "https://ark.example.com/api/v3/models");
+      assert.equal(request.headers.Authorization, "Bearer test-key");
+      return { ok: true, status: 200, json: async () => ({ data: [{ id: "doubao-seed-2-1-turbo-260628" }] }) };
+    }
+  });
+  assert.equal(catalog.discovery.source, "ark-api");
+  assert.equal(catalog.models.find(model => model.id === "doubao-seed-2.1-turbo").available, true);
+  assert.equal(catalog.models.find(model => model.id === "doubao-seed-2.1-pro").available, false);
+});
+
 test("project prompt requires a complete model-authored production contract", () => {
   const prompt = buildProductionPrompt({ source: "孙悟空、哪吒、猪八戒、唐僧四个人打麻将", mode: "series", model: "doubao-seed-2.1-turbo" });
   assert.match(prompt, /必须恰好 60 项/);
@@ -75,7 +91,9 @@ test("Ark generation returns provenance and token usage", async () => {
       fetchImpl: async (_url, request) => {
         const body = JSON.parse(request.body);
         assert.equal(body.model, "ep-test-text");
+        assert.equal(body.max_tokens, 8_000);
         assert.deepEqual(body.response_format, { type: "json_object" });
+        assert.deepEqual(body.thinking, { type: "disabled" });
         assert.equal(request.headers.Authorization, "Bearer test-key");
         return {
           ok: true,

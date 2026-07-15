@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 const MODEL_PRICE_SOURCE = "https://www.volcengine.com/product/doubao";
 const MODEL_LIST_SOURCE = "https://www.volcengine.com/docs/82379/1330310";
+const ARK_RUNTIME_BASE_URL = "https://ark.cn-beijing.volces.com/api/v3";
 const DEFAULT_MODEL_ID = "doubao-seed-2.1-turbo";
 const MODEL_ID_PATTERN = /^[A-Za-z0-9._:-]{1,200}$/;
 
@@ -9,7 +10,6 @@ const BUILTIN_MODEL_DEFINITIONS = [
   {
     id: "doubao-seed-2.1-turbo",
     env: "ARK_TEXT_MODEL_TURBO",
-    defaultProviderModel: "doubao-seed-2-1-turbo",
     name: "Doubao Seed 2.1 Turbo",
     shortName: "Seed 2.1 Turbo",
     vendor: "豆包",
@@ -20,12 +20,12 @@ const BUILTIN_MODEL_DEFINITIONS = [
     pricing: { inputPerMillion: 3, outputPerMillion: 15, currency: "CNY" },
     freeQuota: "50 万 tokens 试用额度",
     billing: "trial_then_paid",
-    supportsJsonMode: true
+    supportsJsonMode: true,
+    supportsThinkingControl: true
   },
   {
     id: "doubao-seed-2.1-pro",
     env: "ARK_TEXT_MODEL_PRO",
-    defaultProviderModel: "doubao-seed-2-1-pro",
     name: "Doubao Seed 2.1 Pro",
     shortName: "Seed 2.1 Pro",
     vendor: "豆包",
@@ -41,7 +41,6 @@ const BUILTIN_MODEL_DEFINITIONS = [
   {
     id: "doubao-seed-evolving",
     env: "ARK_TEXT_MODEL_EVOLVING",
-    defaultProviderModel: "doubao-seed-evolving",
     name: "Doubao Seed Evolving",
     shortName: "Seed Evolving",
     vendor: "豆包",
@@ -167,25 +166,59 @@ function resolvedModelDefinitions(env = process.env) {
   return { models: [...modelsById.values()], warnings: custom.warnings };
 }
 
-export function modelCatalog(configured = false, env = process.env) {
+export function modelCatalog(configured = false, env = process.env, options = {}) {
   const resolved = resolvedModelDefinitions(env);
-  const models = resolved.models.map(({ env: _env, defaultProviderModel: _defaultProviderModel, providerModel, supportsJsonMode: _supportsJsonMode, ...model }) => ({
+  const discoveredProviderModels = Array.isArray(options.providerModelIds)
+    ? new Set(options.providerModelIds.filter(id => typeof id === "string" && MODEL_ID_PATTERN.test(id)))
+    : null;
+  const models = resolved.models.map(({ env: _env, defaultProviderModel: _defaultProviderModel, providerModel, supportsJsonMode: _supportsJsonMode, supportsThinkingControl: _supportsThinkingControl, ...model }) => ({
     ...model,
-    available: configured && Boolean(providerModel),
-    endpointConfigured: Boolean(providerModel)
+    // Endpoint IDs are account-owned aliases and are not returned by /models.
+    // Direct Model IDs must still be present in the live Ark response to be selectable.
+    available: configured && Boolean(providerModel) && (!discoveredProviderModels || providerModel.startsWith("ep-") || discoveredProviderModels.has(providerModel)),
+    endpointConfigured: Boolean(providerModel),
+    liveVerified: discoveredProviderModels ? providerModel.startsWith("ep-") || discoveredProviderModels.has(providerModel) : null
   }));
   const defaultModel = models.find(model => model.recommended && model.available)?.id || models.find(model => model.available)?.id || "local-rules";
   return {
     provider: "volcengine-ark",
     configured,
-    updatedAt: "2026-07-15",
+    updatedAt: options.fetchedAt || new Date().toISOString(),
     defaultModel,
+    discovery: {
+      source: discoveredProviderModels ? "ark-api" : "configuration",
+      providerModelCount: discoveredProviderModels?.size || 0
+    },
     priceNotice: "模型是否免费、试用额度和实际单价以方舟账号与接入点为准；页面中的已知价格仅作参考。",
     priceSource: MODEL_PRICE_SOURCE,
     listSource: MODEL_LIST_SOURCE,
     configurationWarnings: resolved.warnings,
     models
   };
+}
+
+export async function fetchArkModelCatalog(options = {}) {
+  const env = options.env || process.env;
+  const apiKey = options.apiKey || env.ARK_API_KEY;
+  if (!apiKey) return modelCatalog(false, env);
+  const fetchImpl = options.fetchImpl || fetch;
+  const baseUrl = String(options.baseUrl || ARK_RUNTIME_BASE_URL).replace(/\/$/, "");
+  let response;
+  try {
+    response = await fetchImpl(`${baseUrl}/models`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(15_000)
+    });
+  } catch {
+    throw serviceError("无法从方舟获取当前账号的模型目录。", 502);
+  }
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw serviceError(payload?.error?.message || payload?.message || "方舟模型目录请求失败。", response.status >= 400 && response.status < 500 ? response.status : 502);
+  const providerModelIds = Array.isArray(payload?.data)
+    ? payload.data.map(item => item?.id).filter(id => typeof id === "string" && MODEL_ID_PATTERN.test(id))
+    : [];
+  if (!providerModelIds.length) throw serviceError("方舟未返回可用模型目录。", 502);
+  return modelCatalog(true, env, { providerModelIds, fetchedAt: new Date().toISOString() });
 }
 
 export function selectedModel(modelId, env = process.env) {
@@ -319,7 +352,12 @@ export async function generateProductionWithArk(rawInput, options = {}) {
   const fetchImpl = options.fetchImpl || fetch;
   const apiKey = options.apiKey || process.env.ARK_API_KEY;
   if (!apiKey) throw serviceError("文本模型服务未配置 ARK_API_KEY。", 503);
-  const maxTokens = Math.max(2_000, Math.min(32_000, Number(options.maxTokens || process.env.ARK_TEXT_MAX_TOKENS) || (input.scope === "episode" ? 8_000 : 24_000)));
+  const targetMaxTokens = input.scope === "episode" || input.mode === "single" ? 8_000 : 24_000;
+  const configuredMaxTokens = Number(options.maxTokens || process.env.ARK_TEXT_MAX_TOKENS);
+  const maxTokens = Math.max(2_000, Math.min(32_000, targetMaxTokens, Number.isFinite(configuredMaxTokens) && configuredMaxTokens > 0 ? configuredMaxTokens : targetMaxTokens));
+  const targetTimeoutMs = input.scope === "episode" || input.mode === "single" ? 240_000 : 600_000;
+  const configuredTimeoutMs = Number(options.timeoutMs || process.env.ARK_TEXT_TIMEOUT_MS);
+  const timeoutMs = Math.max(30_000, Math.min(900_000, Number.isFinite(configuredTimeoutMs) && configuredTimeoutMs > 0 ? configuredTimeoutMs : targetTimeoutMs));
   const requestBody = {
     model: model.providerModel,
     messages: [
@@ -329,11 +367,12 @@ export async function generateProductionWithArk(rawInput, options = {}) {
     max_tokens: maxTokens
   };
   if (model.supportsJsonMode) requestBody.response_format = { type: "json_object" };
+  if (model.supportsThinkingControl) requestBody.thinking = { type: "disabled" };
   const response = await fetchImpl("https://ark.cn-beijing.volces.com/api/v3/chat/completions", {
     method: "POST",
     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
     body: JSON.stringify(requestBody),
-    signal: AbortSignal.timeout(input.scope === "episode" ? 90_000 : 180_000)
+    signal: AbortSignal.timeout(timeoutMs)
   });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {

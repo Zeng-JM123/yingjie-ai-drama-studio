@@ -35,7 +35,7 @@
 
 `video-service/` 同时提供方舟文本模型代理、项目数据 API 和 Seedance 视频代理。它使用 Node.js 内置 SQLite（Node **22.13+**），首次读取项目时会写入一份服务端种子数据；之后角色、分镜、Brief、标签、模型请求来源、Token 用量、画布节点、素材版本、制作日志、审片状态和交付状态都会在用户操作后自动保存。Seedance 视频任务的项目/镜头归属和任务状态也会入库。
 
-`GET /v1/models` 的目录并不写死在前端。服务内置常用方舟模型入口，DeepSeek、Kimi、GLM 通过对应环境变量绑定账号中的 Model ID / Endpoint ID；其他模型可通过 `ARK_TEXT_MODELS_JSON` 加入受控目录。没有配置接入点的模型仍会展示，但不能提交生成请求。
+前端不内置远程模型清单：每次加载创作台、重新获得焦点时都会请求 `GET /v1/models`。该接口会实时向方舟读取当前账号的模型目录，再校验服务端已配置的 Model ID / Endpoint ID；拿不到目录时页面只保留本地规则草稿，不会展示不可点击的占位模型。DeepSeek、Kimi、GLM 通过对应环境变量绑定账号中的 Model ID / Endpoint ID；其他模型可通过 `ARK_TEXT_MODELS_JSON` 加入受控目录。
 
 数据库包含 `projects`、`characters`、`shots`、`activities`、`video_jobs` 五张表。项目写入以事务执行，并带 `revision` 乐观锁，避免两个编辑会话相互静默覆盖。
 

@@ -168,15 +168,12 @@ let activities = [
 ];
 let selectedSeasonEpisode = 1;
 let seasonFilter = 'all';
-let availableTextModels = [
-  { id: 'doubao-seed-2.1-turbo', name: 'Doubao Seed 2.1 Turbo', shortName: 'Seed 2.1 Turbo', vendor: '豆包', category: 'doubao', recommended: true, description: '日常剧本与分镜推荐', pricing: { inputPerMillion: 3, outputPerMillion: 15 }, freeQuota: '50 万 tokens 试用额度', billing: 'trial_then_paid', available: false, endpointConfigured: false },
-  { id: 'doubao-seed-2.1-pro', name: 'Doubao Seed 2.1 Pro', shortName: 'Seed 2.1 Pro', vendor: '豆包', category: 'doubao', description: '复杂长线剧情与高质量结构', pricing: { inputPerMillion: 6, outputPerMillion: 30 }, freeQuota: '50 万 tokens 试用额度', billing: 'trial_then_paid', available: false, endpointConfigured: false },
-  { id: 'doubao-seed-evolving', name: 'Doubao Seed Evolving', shortName: 'Seed Evolving', vendor: '豆包', category: 'doubao', description: 'Agent 与复杂任务编排', pricing: { inputPerMillion: 6, outputPerMillion: 30 }, freeQuota: '50 万 tokens 试用额度', billing: 'trial_then_paid', available: false, endpointConfigured: false },
-  { id: 'deepseek-v3.2', name: 'DeepSeek V3.2', shortName: 'DeepSeek V3.2', vendor: 'DeepSeek', category: 'third-party', description: '复杂因果与悬疑推理', pricing: null, priceLabel: '方舟控制台计价', freeQuota: '免费与试用额度以方舟账号为准', billing: 'account', available: false, endpointConfigured: false },
-  { id: 'kimi-k2.5', name: 'Kimi K2.5', shortName: 'Kimi K2.5', vendor: 'Moonshot AI', category: 'third-party', description: '长原稿与跨集连续性', pricing: null, priceLabel: '方舟控制台计价', freeQuota: '免费与试用额度以方舟账号为准', billing: 'account', available: false, endpointConfigured: false },
-  { id: 'glm-4.7', name: 'GLM-4.7', shortName: 'GLM-4.7', vendor: '智谱 AI', category: 'third-party', description: '结构化拆解与生产规划', pricing: null, priceLabel: '方舟控制台计价', freeQuota: '免费与试用额度以方舟账号为准', billing: 'account', available: false, endpointConfigured: false }
-];
+// Remote model choices are intentionally empty until the gateway returns the
+// current Ark catalog. This prevents a published static page from presenting
+// stale, non-clickable placeholder models as if they were connected.
+let availableTextModels = [];
 let modelCatalogDefault = 'local-rules';
+let modelCatalogRefreshPromise = null;
 
 function selectedProductionMode() {
   return window.YingjieProduction?.exportState()?.mode || $('.production-modes button.active')?.dataset.productionMode || 'series';
@@ -254,8 +251,10 @@ function renderSelectedModelBilling() {
     const hasAvailableRemoteModel = availableTextModels.some(model => model.available);
     const message = hasAvailableRemoteModel
       ? '永久免费 · 仅生成规则草稿，不调用方舟模型。'
-      : '模型服务未连接，已自动切换到本地规则草稿 · 免费，不调用模型。';
-    return setModelRunStatus(message, hasAvailableRemoteModel ? '' : 'ready');
+      : studioGateway
+        ? '模型目录暂不可用，已保留本地规则草稿 · 免费，不调用模型。'
+        : '尚未配置模型网关，已使用本地规则草稿 · 免费，不调用模型。';
+    return setModelRunStatus(message, hasAvailableRemoteModel ? '' : studioGateway ? 'error' : 'ready');
   }
   const model = textModelById(id);
   if (!model) return setModelRunStatus('方舟模型信息暂不可用。', 'error');
@@ -267,6 +266,37 @@ function renderSelectedModelBilling() {
   setModelRunStatus(`${model.vendor || '方舟'} · ${model.freeQuota || '额度以方舟账号为准'} · ${pricing} · ${connection}`, model.available ? 'ready' : 'error');
 }
 
+async function refreshModelCatalog(preferredId = projectMetadata.aiModel || selectedTextModelId()) {
+  if (modelCatalogRefreshPromise) return modelCatalogRefreshPromise;
+  if (!studioGateway) {
+    availableTextModels = [];
+    modelCatalogDefault = 'local-rules';
+    renderModelSelection('local-rules');
+    return null;
+  }
+  setModelRunStatus('正在从方舟网关读取当前账号的模型目录…', 'running');
+  modelCatalogRefreshPromise = (async () => {
+    try {
+      const response = await fetch(`${studioGateway}/v1/models`, { cache: 'no-store' });
+      const catalog = await response.json();
+      if (!response.ok || !Array.isArray(catalog.models)) throw new Error(catalog.error || '模型目录读取失败');
+      availableTextModels = catalog.models;
+      modelCatalogDefault = catalog.defaultModel || 'local-rules';
+      renderModelSelection(preferredId || modelCatalogDefault);
+      return catalog;
+    } catch (error) {
+      availableTextModels = [];
+      modelCatalogDefault = 'local-rules';
+      renderModelSelection('local-rules');
+      setModelRunStatus(`${error?.message || '模型目录读取失败'}；未展示任何静态模型。`, 'error');
+      return null;
+    } finally {
+      modelCatalogRefreshPromise = null;
+    }
+  })();
+  return modelCatalogRefreshPromise;
+}
+
 async function initializeModelCatalog() {
   const select = $('#productionModel');
   select?.addEventListener('change', () => {
@@ -274,18 +304,10 @@ async function initializeModelCatalog() {
     renderSelectedModelBilling();
     scheduleProjectSave();
   });
-  renderModelSelection();
-  if (!studioGateway) return;
-  try {
-    const response = await fetch(`${studioGateway}/v1/models`);
-    const catalog = await response.json();
-    if (!response.ok || !Array.isArray(catalog.models)) throw new Error(catalog.error || '模型目录读取失败');
-    availableTextModels = catalog.models;
-    modelCatalogDefault = catalog.defaultModel || 'local-rules';
-    renderModelSelection(projectMetadata.aiModel || modelCatalogDefault);
-  } catch {
-    renderSelectedModelBilling();
-  }
+  select?.addEventListener('focus', () => { void refreshModelCatalog(selectedTextModelId()); });
+  window.addEventListener?.('focus', () => { void refreshModelCatalog(selectedTextModelId()); });
+  renderModelSelection('local-rules');
+  await refreshModelCatalog(projectMetadata.aiModel || null);
 }
 
 async function requestAIProduction(source, options = {}) {

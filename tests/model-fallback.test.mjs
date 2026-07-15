@@ -56,11 +56,11 @@ const remoteModels = [{
   endpointConfigured: true
 }];
 
-test('offline studio automatically selects the free local draft', async () => {
+test('offline studio only shows the free local draft instead of static placeholder models', async () => {
   const { select, billing } = await loadModelControls();
   assert.equal(select.value, 'local-rules');
-  assert.equal(select.options.find(option => option.value === 'doubao-seed-2.1-turbo').disabled, true);
-  assert.match(billing.textContent, /已自动切换到本地规则草稿/);
+  assert.equal(select.options.some(option => option.value === 'doubao-seed-2.1-turbo'), false);
+  assert.match(billing.textContent, /尚未配置模型网关/);
 });
 
 test('configured model service keeps the recommended Ark model available', async () => {

@@ -67,7 +67,7 @@
           <div class="brief-footer">
             <div class="tag-list"><button class="tag active">都市悬疑</button><button class="tag active">女性向</button><button class="tag">2–3 分钟</button><button class="tag">9:16 竖屏</button><button class="tag">冷暖对照</button></div>
             <div class="brief-generation-controls">
-              <label class="ai-model-control" for="productionModel"><span>创作模型</span><select id="productionModel" aria-describedby="modelBilling"><optgroup label="豆包模型"><option value="doubao-seed-2.1-turbo" disabled>Seed 2.1 Turbo · 推荐 · 等待网关</option><option value="doubao-seed-2.1-pro" disabled>Seed 2.1 Pro · 等待网关</option><option value="doubao-seed-evolving" disabled>Seed Evolving · 等待网关</option></optgroup><optgroup label="方舟第三方模型"><option value="deepseek-v3.2" disabled>DeepSeek V3.2 · 未配置</option><option value="kimi-k2.5" disabled>Kimi K2.5 · 未配置</option><option value="glm-4.7" disabled>GLM-4.7 · 未配置</option></optgroup><optgroup label="离线模式"><option value="local-rules" selected>本地规则草稿 · 免费 · 不调用模型</option></optgroup></select><small id="modelBilling">正在读取方舟模型目录、可用状态与计费信息…</small></label>
+              <label class="ai-model-control" for="productionModel"><span>创作模型</span><select id="productionModel" aria-describedby="modelBilling"><optgroup label="离线模式"><option value="local-rules" selected>本地规则草稿 · 免费 · 不调用模型</option></optgroup></select><small id="modelBilling">正在从方舟网关读取当前账号的模型目录…</small></label>
               <button class="generate-button" id="runPipeline"><span>✦</span> AI 拆解并更新制作链 <kbd>⌘ ↵</kbd></button>
             </div>
           </div>
@@ -330,6 +330,6 @@
 
     <script src="./runtime-config.js?v=20260712-seedance-local"></script>
     <script src="./production-studio.js?v=20260714-ark-models"></script>
-    <script src="./app.js?v=20260715-model-fallback"></script>
+    <script src="./app.js?v=20260715-live-model-catalog"></script>
   </body>
 </html>
