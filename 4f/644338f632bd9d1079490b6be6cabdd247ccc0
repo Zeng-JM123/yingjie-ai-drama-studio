@@ -1,0 +1,33 @@
+README.md
+  s_c069429726c62c::t_b1f3fed3de6c8e 66-67
+app.js
+  s_c069429726c62c::t_1d1dca2cea9f7b 144,179-201,304,357,679,1076,1696
+docs/火山引擎生产部署.md
+  s_c069429726c62c::t_0a9cae103a36db 64,78-79
+runtime-config.js
+  s_c069429726c62c::t_ae5436da71c678 13-15
+video-service/.env.example
+  s_c069429726c62c::t_a8e18a4e688f07 16-18
+video-service/deploy/volcengine/.env.example
+  s_c069429726c62c::t_d37f82544abdfd 18-20
+video-service/server.mjs
+  s_c069429726c62c::t_8bba0371c17aac 2,23,50-61,67,214
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "4f644338f632bd9d1079490b6be6cabdd247ccc0",
+  "prompts": {},
+  "sessions": {
+    "s_c069429726c62c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f616e-17cf-7ef2-ba22-58db9aaf1f0c",
+        "model": "unknown"
+      },
+      "human_author": "zengjiaming <zengjiaming.alex@bytedance.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
