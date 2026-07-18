@@ -141,6 +141,7 @@ const config = {
   videoApiBaseUrl: runtimeConfig.videoApiBaseUrl || localPreviewGateway
 };
 const studioGateway = String(config.studioApiBaseUrl || config.videoApiBaseUrl || '').replace(/\/$/, '');
+const accessTokenStorageKey = String(config.accessTokenStorageKey || 'yingjie:studio-access-token');
 const studioProjectId = /^[A-Za-z0-9_-]{1,80}$/.test(config.projectId || '') ? config.projectId : 'yesterday-signal-ep01';
 const localStudioStorageKey = `yingjie:studio:${studioProjectId}`;
 const seedanceDurations = [2, 3, 4, 5, 6, 8, 10, 12];
@@ -174,6 +175,29 @@ let seasonFilter = 'all';
 let availableTextModels = [];
 let modelCatalogDefault = 'local-rules';
 let modelCatalogRefreshPromise = null;
+
+function getStudioAccessToken() {
+  try { return window.localStorage.getItem(accessTokenStorageKey)?.trim() || ''; } catch { return ''; }
+}
+
+function requestWithStudioAccessToken(options = {}) {
+  const token = getStudioAccessToken();
+  // Keep this plain-object based so the static app is also testable in the
+  // lightweight preview harness where the browser Headers constructor is absent.
+  const headers = { ...(options.headers || {}) };
+  if (token) headers['X-Studio-Access-Token'] = token;
+  return { ...options, headers };
+}
+
+async function fetchGateway(url, options = {}) {
+  let response = await fetch(url, requestWithStudioAccessToken(options));
+  if (response.status !== 401) return response;
+  const token = window.prompt('请输入工作室访问令牌（首次连接云端网关时需要）：', '');
+  if (!token?.trim()) return response;
+  try { window.localStorage.setItem(accessTokenStorageKey, token.trim()); } catch { /* browser storage is optional */ }
+  response = await fetch(url, requestWithStudioAccessToken(options));
+  return response;
+}
 
 function selectedProductionMode() {
   return window.YingjieProduction?.exportState()?.mode || $('.production-modes button.active')?.dataset.productionMode || 'series';
@@ -277,7 +301,7 @@ async function refreshModelCatalog(preferredId = projectMetadata.aiModel || sele
   setModelRunStatus('正在从方舟网关读取当前账号的模型目录…', 'running');
   modelCatalogRefreshPromise = (async () => {
     try {
-      const response = await fetch(`${studioGateway}/v1/models`, { cache: 'no-store' });
+      const response = await fetchGateway(`${studioGateway}/v1/models`, { cache: 'no-store' });
       const catalog = await response.json();
       if (!response.ok || !Array.isArray(catalog.models)) throw new Error(catalog.error || '模型目录读取失败');
       availableTextModels = catalog.models;
@@ -330,7 +354,7 @@ async function requestAIProduction(source, options = {}) {
   setModelRunStatus(`正在调用方舟 ${modelInfo?.name || model} 生成${options.scope === 'episode' ? '分集分镜' : '故事、人物、场景和分镜'}…`, 'running');
   let response;
   try {
-    response = await fetch(`${studioGateway}/v1/production/generate`, {
+    response = await fetchGateway(`${studioGateway}/v1/production/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -652,7 +676,7 @@ async function saveProject() {
   if (saveInFlight) { saveQueued = true; return; }
   saveInFlight = true;
   try {
-    const response = await fetch(`${studioGateway}/v1/projects/${studioProjectId}/studio`, {
+    const response = await fetchGateway(`${studioGateway}/v1/projects/${studioProjectId}/studio`, {
       method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(buildStudioPayload())
     });
     const studio = await response.json();
@@ -1049,7 +1073,7 @@ async function loadProject() {
   setSaveState('saving');
   setGatewayStatus('正在连接项目服务…', 'loading');
   try {
-    const response = await fetch(`${studioGateway}/v1/projects/${studioProjectId}/studio`);
+    const response = await fetchGateway(`${studioGateway}/v1/projects/${studioProjectId}/studio`);
     const studio = await response.json();
     if (!response.ok) throw new Error(studio.error || '项目读取失败');
     applyStudio(studio);
@@ -1669,7 +1693,7 @@ function setAnimaticPreview(shot) {
 async function requestVideoGateway(path, options = {}) {
   if (!videoGateway) throw new Error('视频服务尚未配置');
   try {
-    const response = await fetch(`${videoGateway}${path}`, { ...options, signal: AbortSignal.timeout(35_000) });
+    const response = await fetchGateway(`${videoGateway}${path}`, { ...options, signal: AbortSignal.timeout(35_000) });
     const task = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(task.error || `视频服务请求失败（HTTP ${response.status}）`);
     return task;

@@ -1,4 +1,5 @@
 import { createServer } from "node:http";
+import { timingSafeEqual } from "node:crypto";
 import { resolve } from "node:path";
 import { createProjectStore } from "./store.mjs";
 import { fetchArkModelCatalog, generateProductionWithArk, modelCatalog } from "./production-service.mjs";
@@ -19,6 +20,7 @@ const allowedOrigins = new Set(
 );
 const allowLoopbackOrigins = process.env.ALLOW_LOOPBACK_ORIGINS === "true";
 const allowFileOrigin = process.env.ALLOW_FILE_ORIGIN === "true";
+const studioAccessToken = String(process.env.STUDIO_ACCESS_TOKEN || "").trim();
 const supportedRatios = new Set(["9:16", "16:9", "1:1", "3:4", "4:3", "21:9", "adaptive"]);
 const supportedDurations = new Set([2, 3, 4, 5, 6, 8, 10, 12]);
 
@@ -45,12 +47,24 @@ function isAllowedOrigin(origin) {
   }
 }
 
+function hasValidStudioAccessToken(request) {
+  // Leaving this unset preserves the zero-config local development workflow.
+  // A public deployment must set STUDIO_ACCESS_TOKEN so that CORS is not the
+  // only protection for paid Ark generation endpoints.
+  if (!studioAccessToken) return true;
+  const candidate = request.headers["x-studio-access-token"];
+  if (typeof candidate !== "string") return false;
+  const expectedBuffer = Buffer.from(studioAccessToken);
+  const candidateBuffer = Buffer.from(candidate);
+  return expectedBuffer.length === candidateBuffer.length && timingSafeEqual(expectedBuffer, candidateBuffer);
+}
+
 function respond(response, status, body, origin, extraHeaders = {}) {
   const headers = { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "Vary": "Origin", ...extraHeaders };
   if (origin && isAllowedOrigin(origin)) {
     headers["Access-Control-Allow-Origin"] = origin;
     headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, OPTIONS";
-    headers["Access-Control-Allow-Headers"] = "Content-Type";
+    headers["Access-Control-Allow-Headers"] = "Content-Type, X-Studio-Access-Token";
   }
   response.writeHead(status, headers);
   response.end(JSON.stringify(body));
@@ -197,6 +211,7 @@ const server = createServer(async (request, response) => {
     videoConfigured: videoConfigured(),
     database: "sqlite"
   }, origin);
+  if (!hasValidStudioAccessToken(request)) return respond(response, 401, { error: "需要工作室访问令牌。" }, origin);
   try {
     const studioMatch = url.pathname.match(/^\/v1\/projects\/([A-Za-z0-9_-]{1,80})\/studio$/);
     const jobsMatch = url.pathname.match(/^\/v1\/projects\/([A-Za-z0-9_-]{1,80})\/video-jobs$/);

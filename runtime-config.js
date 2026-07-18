@@ -10,5 +10,8 @@ window.YINGJIE_CONFIG = {
   // Never add secrets here.
   studioApiBaseUrl: localGateway,
   videoApiBaseUrl: localGateway,
+  // Optional localStorage key for the server-side STUDIO_ACCESS_TOKEN. The
+  // token itself is deliberately entered by the operator, never published.
+  accessTokenStorageKey: "yingjie:studio-access-token",
   projectId: "yesterday-signal-ep01"
 };

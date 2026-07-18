@@ -63,6 +63,8 @@ window.YINGJIE_CONFIG = {
 | --- | --- | --- |
 | `GET` | `/v1/projects/{projectId}/studio` | 读取项目完整快照；不存在时初始化种子项目 |
 | `PUT` | `/v1/projects/{projectId}/studio` | 原子保存项目、角色、分镜、日志与制作状态 |
+
+公开部署请设置服务端 `STUDIO_ACCESS_TOKEN`。网页首次连接时会提示操作者输入该令牌；令牌只保存在本机浏览器，不能放进 `runtime-config.js`。这避免任何人绕过 CORS 直接消耗方舟额度。
 | `GET` | `/v1/projects/{projectId}/video-jobs` | 读取已提交视频任务的持久化记录 |
 | `GET` | `/v1/models` | 返回创作台支持的方舟文本模型、试用额度与参考单价 |
 | `POST` | `/v1/production/generate` | 使用所选方舟模型生成项目或单集分镜 JSON |
